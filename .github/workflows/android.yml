@@ -25,11 +25,13 @@ jobs:
           java-version: 21
 
       - name: Preparar Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
+        with:
+          packages: platform-tools
 
       - name: Instalar ferramentas Android
         run: |
-          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+          sdkmanager "platforms;android-36" "build-tools;36.0.0"
 
       - name: Instalar dependências
         run: npm install
