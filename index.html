@@ -1,0 +1,478 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#263B63">
+
+    <title>ORBIA | Sua vida no seu ritmo</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        .bottom-navigation {
+            z-index: 200;
+        }
+
+        .bottom-navigation button.active {
+            color: #35B89A;
+            font-weight: 700;
+        }
+
+        #settings-section {
+            display: block;
+        }
+
+        #settings-section .sleep-card {
+            margin-bottom: 18px;
+        }
+
+        .settings-description {
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.6;
+            margin-top: 5px;
+        }
+
+        .settings-button {
+            width: 100%;
+            min-height: 45px;
+            margin-top: 15px;
+            padding: 12px;
+            border: none;
+            border-radius: 12px;
+            background: var(--accent);
+            color: white;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .settings-button.secondary {
+            background: var(--background);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .settings-info {
+            display: block;
+            margin-top: 10px;
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        .settings-status {
+            display: block;
+            margin-top: 12px;
+            color: var(--accent);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .settings-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 17px 0;
+        }
+
+        .settings-version {
+            color: var(--primary);
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .backup-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.65);
+            align-items: center;
+            justify-content: center;
+            padding: 18px;
+        }
+
+        .backup-modal.active {
+            display: flex;
+        }
+
+        .backup-modal-content {
+            width: 100%;
+            max-width: 500px;
+            max-height: 85vh;
+            overflow-y: auto;
+            background: var(--surface);
+            color: var(--text);
+            border-radius: 18px;
+            padding: 20px;
+        }
+
+        .backup-modal-content h2 {
+            margin-bottom: 8px;
+        }
+
+        .backup-modal-content p {
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+
+        #backup-json-content {
+            display: block;
+            width: 100%;
+            height: 250px;
+            resize: vertical;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--background);
+            color: var(--text);
+            font-family: monospace;
+            font-size: 11px;
+            line-height: 1.5;
+            box-sizing: border-box;
+        }
+
+        .backup-modal-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .backup-modal-actions button {
+            width: 100%;
+            min-height: 45px;
+            border: none;
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        #copy-backup-button {
+            background: var(--accent);
+            color: white;
+        }
+
+        #close-backup-button {
+            background: var(--background);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        #backup-copy-status {
+            display: block;
+            min-height: 18px;
+            margin-top: 10px;
+            font-size: 12px;
+            color: var(--accent);
+            line-height: 1.5;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="greeting">
+            <p id="current-date">SUA ROTINA</p>
+            <h1>Bom dia! ☀️</h1>
+            <span>Vamos organizar seu dia?</span>
+        </div>
+
+        <button id="theme-button">☾</button>
+    </header>
+
+    <main>
+
+        <section class="daily-progress" id="daily-progress-section">
+            <p>SEU PROGRESSO DE HOJE</p>
+
+            <div class="progress-information">
+                <h2 id="progress-percent">0%</h2>
+                <span id="progress-count">0 de 0 atividades</span>
+            </div>
+
+            <div class="progress-bar">
+                <div id="progress-fill"></div>
+            </div>
+        </section>
+
+        <section class="weekly-agenda" id="agenda-section">
+            <div class="section-header">
+                <h2>Sua semana</h2>
+
+                <div class="week-controls">
+                    <button id="previous-week">‹</button>
+                    <button id="next-week">›</button>
+                </div>
+            </div>
+
+            <p id="week-label" class="week-label"></p>
+
+            <div id="week-days" class="week-days"></div>
+        </section>
+
+        <section class="schedule" id="schedule-section">
+            <div class="section-header">
+                <h2>Sua programação</h2>
+
+                <button id="view-all">Ver tudo →</button>
+            </div>
+
+            <div id="activity-list"></div>
+        </section>
+
+        <section class="sleep-card" id="sleep-section">
+            <h2>🌙 Seu sono</h2>
+            <p>Carregando seu painel de sono...</p>
+        </section>
+
+        <section class="habits-section" id="habits-section">
+            <div class="section-header">
+                <h2>Seus hábitos</h2>
+                <span id="habits-count">0 hábitos</span>
+            </div>
+
+            <div id="habits-list"></div>
+
+            <button id="add-habit" class="add-habit-button">
+                + Adicionar hábito
+            </button>
+        </section>
+
+        <section id="settings-section">
+
+            <div class="sleep-card">
+                <h2>🎨 Aparência</h2>
+
+                <div class="sleep-hours">
+                    <strong>Tema do aplicativo</strong>
+
+                    <span>
+                        Escolha entre o tema claro e o tema escuro.
+                    </span>
+
+                    <button
+                        type="button"
+                        id="settings-theme-button"
+                        class="settings-button"
+                    >
+                        Alternar tema
+                    </button>
+                </div>
+            </div>
+
+            <div class="sleep-card">
+                <h2>💾 Seus dados</h2>
+
+                <div class="sleep-hours">
+                    <strong>Armazenamento local</strong>
+
+                    <span class="settings-description">
+                        Suas atividades, hábitos e metas ficam salvos
+                        neste dispositivo.
+                    </span>
+
+                    <button
+                        type="button"
+                        id="export-backup"
+                        class="settings-button"
+                    >
+                        Exportar backup
+                    </button>
+
+                    <button
+                        type="button"
+                        id="import-backup-button"
+                        class="settings-button secondary"
+                    >
+                        Importar backup
+                    </button>
+
+                    <input
+                        type="file"
+                        id="import-backup-file"
+                        accept=".json,application/json"
+                        hidden
+                    >
+
+                    <span
+                        id="backup-status"
+                        class="settings-status"
+                        aria-live="polite"
+                    ></span>
+
+                    <span class="settings-info">
+                        O backup contém suas atividades, hábitos e metas.
+                        Guarde o arquivo JSON em um local seguro.
+                    </span>
+                </div>
+            </div>
+
+            <div class="sleep-card">
+                <h2>🔒 Preferências</h2>
+
+                <div class="sleep-hours">
+                    <strong>Privacidade e funcionamento</strong>
+
+                    <span class="settings-description">
+                        O ORBIA utiliza o armazenamento local do
+                        dispositivo. Seus dados pessoais não precisam
+                        ser enviados para um servidor para você usar
+                        as funções atuais do aplicativo.
+                    </span>
+
+                    <div class="settings-divider"></div>
+
+                    <strong>Funcionamento offline</strong>
+
+                    <span class="settings-description">
+                        Suas atividades, hábitos e preferências
+                        continuam disponíveis sem conexão com a internet.
+                    </span>
+                </div>
+            </div>
+
+            <div class="sleep-card">
+                <h2>ℹ️ Sobre o ORBIA</h2>
+
+                <div class="sleep-hours">
+                    <span class="settings-version">
+                        ORBIA — Versão 1.0
+                    </span>
+
+                    <strong>Tudo na sua órbita.</strong>
+
+                    <span class="settings-description">
+                        Sua vida no seu ritmo.
+                    </span>
+
+                    <div class="settings-divider"></div>
+
+                    <span class="settings-info">
+                        Um organizador pessoal para ajudar você
+                        a acompanhar atividades, agenda e hábitos
+                        em um só lugar.
+                    </span>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <button id="add-activity">
+        + Adicionar atividade
+    </button>
+
+    <div id="activity-modal" class="modal">
+        <div class="modal-content">
+            <h2>Nova atividade</h2>
+
+            <input
+                type="text"
+                id="activity-name"
+                placeholder="Nome da atividade"
+            >
+
+            <input type="time" id="activity-time">
+
+            <input type="date" id="activity-date">
+
+            <div class="modal-actions">
+                <button id="cancel-activity">Cancelar</button>
+                <button id="save-activity">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <div
+        id="backup-modal"
+        class="backup-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="backup-modal-title"
+    >
+        <div class="backup-modal-content">
+
+            <h2 id="backup-modal-title">💾 Seu backup ORBIA</h2>
+
+            <p>
+                Copie todo o conteúdo abaixo e guarde em um arquivo
+                com o nome orbia-backup.json.
+            </p>
+
+            <textarea
+                id="backup-json-content"
+                readonly
+                spellcheck="false"
+            ></textarea>
+
+            <span
+                id="backup-copy-status"
+                aria-live="polite"
+            ></span>
+
+            <div class="backup-modal-actions">
+
+                <button
+                    type="button"
+                    id="copy-backup-button"
+                >
+                    Copiar backup
+                </button>
+
+                <button
+                    type="button"
+                    id="close-backup-button"
+                >
+                    Fechar
+                </button>
+
+            </div>
+
+        </div>
+    </div>
+
+    <nav class="bottom-navigation">
+
+        <button type="button" id="nav-home" class="active">
+            ⌂
+            <span>Início</span>
+        </button>
+
+        <button type="button" id="nav-agenda">
+            ▦
+            <span>Agenda</span>
+        </button>
+
+        <button type="button" id="nav-habits">
+            ◷
+            <span>Hábitos</span>
+        </button>
+
+        <button type="button" id="nav-goals">
+            ◎
+            <span>Metas</span>
+        </button>
+
+        <button type="button" id="nav-settings">
+            ⚙
+            <span>Ajustes</span>
+        </button>
+
+    </nav>
+
+    <script src="script.js"></script>
+    <script src="goals.js"></script>
+    <script src="sleep.js"></script>
+    <script src="settings.js"></script>
+
+</body>
+</html>

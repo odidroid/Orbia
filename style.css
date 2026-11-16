@@ -1,0 +1,875 @@
+
+/* =================================
+   ORBIA — IDENTIDADE VISUAL
+================================= */
+
+:root {
+    --background: #F5F7FA;
+    --surface: #FFFFFF;
+    --primary: #263B63;
+    --accent: #35B89A;
+    --text: #202B3C;
+    --muted: #8490A3;
+    --border: #E8ECF2;
+    --shadow: 0 5px 20px rgba(25, 40, 65, 0.06);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Inter, Arial, sans-serif;
+    background: var(--background);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 28px 20px 110px;
+    transition: background 0.3s, color 0.3s;
+}
+
+/* CABEÇALHO */
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 30px;
+}
+
+.greeting p,
+.daily-progress > p {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    margin-bottom: 9px;
+}
+
+.greeting h1 {
+    font-size: 26px;
+    font-weight: 750;
+    color: var(--primary);
+    margin-bottom: 5px;
+}
+
+.greeting span {
+    font-size: 14px;
+    color: var(--muted);
+}
+
+#theme-button {
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    background: var(--surface);
+    color: var(--primary);
+    font-size: 21px;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+}
+
+/* PROGRESSO DIÁRIO */
+
+.daily-progress {
+    background: var(--primary);
+    color: #FFFFFF;
+    border-radius: 22px;
+    padding: 23px;
+    margin-bottom: 30px;
+    box-shadow: var(--shadow);
+}
+
+.daily-progress > p {
+    color: #C5D0E4;
+}
+
+.progress-information {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 17px 0;
+}
+
+.progress-information h2 {
+    font-size: 35px;
+    font-weight: 750;
+}
+
+.progress-information span {
+    font-size: 12px;
+    color: #D2DBEA;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+#progress-fill {
+    width: 0%;
+    height: 100%;
+    background: var(--accent);
+    border-radius: 20px;
+    transition: width 0.3s;
+}
+
+/* PROGRAMAÇÃO */
+
+.schedule {
+    margin-bottom: 25px;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 17px;
+}
+
+.section-header h2 {
+    font-size: 19px;
+    font-weight: 700;
+}
+
+#view-all {
+    border: none;
+    background: transparent;
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+/* LISTA DE ATIVIDADES */
+
+#activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.activity-card {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 17px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 17px;
+    box-shadow: var(--shadow);
+}
+
+.activity-time {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--primary);
+    min-width: 48px;
+}
+
+.activity-details {
+    flex: 1;
+}
+
+.activity-details h3 {
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.activity-details span {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+/* SONO */
+
+.sleep-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 21px;
+    box-shadow: var(--shadow);
+}
+
+.sleep-card h2 {
+    font-size: 17px;
+    margin-bottom: 15px;
+}
+
+.sleep-hours {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.sleep-hours strong {
+    font-size: 23px;
+    color: var(--primary);
+}
+
+.sleep-hours span {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+/* BOTÃO ADICIONAR ATIVIDADE */
+
+#add-activity {
+    position: fixed;
+    bottom: 85px;
+    left: 20px;
+    right: 20px;
+    width: calc(100% - 40px);
+    height: 53px;
+    border: none;
+    border-radius: 16px;
+    background: var(--accent);
+    color: #FFFFFF;
+    font-size: 15px;
+    font-weight: 700;
+    box-shadow: 0 7px 18px rgba(53, 184, 154, 0.25);
+    cursor: pointer;
+}
+
+/* NAVEGAÇÃO INFERIOR */
+
+.bottom-navigation {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 70px;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+.bottom-navigation button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.bottom-navigation button span {
+    font-size: 10px;
+}
+
+/* TEMA ESCURO */
+
+body.dark-theme {
+    --background: #101722;
+    --surface: #1B2635;
+    --primary: #8EAFFF;
+    --accent: #45D6B1;
+    --text: #E8EDF5;
+    --muted: #9AA9BC;
+    --border: #2A3749;
+    --shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+}
+
+body.dark-theme .daily-progress {
+    background: #263B63;
+}
+
+body.dark-theme .greeting h1,
+body.dark-theme .activity-time,
+body.dark-theme .sleep-hours strong {
+    color: var(--primary);
+}
+
+/* ADAPTAÇÃO PARA TELAS MAIORES */
+
+@media (min-width: 700px) {
+    body {
+        max-width: 650px;
+        margin: 0 auto;
+    }
+
+    #add-activity {
+        max-width: 610px;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+    .bottom-navigation {
+        max-width: 650px;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+}
+
+/* JANELA DE NOVA ATIVIDADE */
+
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(0, 0, 0, 0.55);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    width: 100%;
+    max-width: 400px;
+    padding: 25px;
+    background: var(--surface);
+    border-radius: 22px;
+    box-shadow: var(--shadow);
+}
+
+.modal-content h2 {
+    margin-bottom: 20px;
+    font-size: 21px;
+}
+
+.modal-content input {
+    width: 100%;
+    padding: 14px;
+    margin-bottom: 13px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--background);
+    color: var(--text);
+    font-size: 15px;
+    outline: none;
+}
+
+.modal-content input:focus {
+    border-color: var(--accent);
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.modal-actions button {
+    flex: 1;
+    padding: 13px;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+#cancel-activity {
+    background: var(--background);
+    color: var(--text);
+}
+
+#save-activity {
+    background: var(--accent);
+    color: white;
+}
+
+/* AÇÕES DAS ATIVIDADES */
+
+.activity-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.activity-actions button {
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 9px;
+    background: var(--background);
+    font-size: 17px;
+    cursor: pointer;
+}
+
+.edit-activity {
+    color: var(--primary);
+}
+
+.delete-activity {
+    color: #E36B6B;
+}
+
+.activity-card input[type="checkbox"] {
+    accent-color: var(--accent);
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* =====================================
+   AGENDA SEMANAL
+===================================== */
+
+.weekly-agenda {
+    margin-bottom: 30px;
+}
+
+.week-controls {
+    display: flex;
+    gap: 7px;
+}
+
+.week-controls button {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 21px;
+    cursor: pointer;
+}
+
+.week-label {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 13px;
+}
+
+.week-days {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 7px;
+}
+
+.week-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 9px;
+    padding: 12px 2px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+}
+
+.week-day span {
+    font-size: 10px;
+    color: var(--muted);
+    font-weight: 700;
+}
+
+.week-day strong {
+    font-size: 16px;
+}
+
+.week-day.selected {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #FFFFFF;
+}
+
+.week-day.selected span {
+    color: #D5DFF0;
+}
+
+/* =====================================
+   ORBIA — HÁBITOS
+===================================== */
+
+.habits-section {
+    margin-top: 30px;
+    margin-bottom: 30px;
+}
+
+#habits-count {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+#habits-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* CARTÃO DE HÁBITO */
+
+.habit-card {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 17px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+}
+
+.habit-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.habit-icon {
+    width: 43px;
+    height: 43px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-radius: 14px;
+    background: rgba(53, 184, 154, 0.12);
+    font-size: 21px;
+}
+
+.habit-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.habit-info h3 {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 5px;
+    overflow-wrap: anywhere;
+}
+
+.habit-info span {
+    font-size: 11px;
+    color: var(--muted);
+}
+
+.habit-check {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--border);
+    border-radius: 11px;
+    background: var(--background);
+    color: white;
+    font-size: 17px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.habit-check.completed {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+/* INFORMAÇÕES DO HÁBITO */
+
+.habit-stats {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.habit-streak {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.habit-progress-text {
+    font-size: 11px;
+    color: var(--muted);
+}
+
+/* PROGRESSO SEMANAL DO HÁBITO */
+
+.habit-week {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 7px;
+}
+
+.habit-week-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    color: var(--muted);
+}
+
+.habit-week-day strong {
+    width: 25px;
+    height: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--background);
+    border: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.habit-week-day.completed strong {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #FFFFFF;
+}
+
+/* AÇÕES DO HÁBITO */
+
+.habit-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.habit-actions button {
+    padding: 7px 11px;
+    border: none;
+    border-radius: 9px;
+    background: var(--background);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.habit-actions .delete-habit {
+    color: #E36B6B;
+}
+
+/* BOTÃO ADICIONAR HÁBITO */
+
+.add-habit-button {
+    width: 100%;
+    height: 49px;
+    margin-top: 14px;
+    border: 1px dashed var(--accent);
+    border-radius: 15px;
+    background: transparent;
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.add-habit-button:active {
+    background: rgba(53, 184, 154, 0.10);
+}
+
+/* ESTADO VAZIO DOS HÁBITOS */
+
+.habits-empty {
+    padding: 25px 18px;
+    text-align: center;
+    background: var(--surface);
+    border: 1px dashed var(--border);
+    border-radius: 17px;
+}
+
+.habits-empty p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+}
+
+/* MODAL DE HÁBITOS */
+
+#habit-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 110;
+    background: rgba(0, 0, 0, 0.55);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+#habit-modal.active {
+    display: flex;
+}
+
+.habit-modal-content {
+    width: 100%;
+    max-width: 400px;
+    padding: 25px;
+    background: var(--surface);
+    border-radius: 22px;
+    box-shadow: var(--shadow);
+}
+
+.habit-modal-content h2 {
+    margin-bottom: 20px;
+    font-size: 21px;
+}
+
+.habit-modal-content input,
+.habit-modal-content select {
+    width: 100%;
+    padding: 14px;
+    margin-bottom: 13px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--background);
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+}
+
+.habit-modal-content input:focus,
+.habit-modal-content select:focus {
+    border-color: var(--accent);
+}
+
+/* RESPONSIVIDADE DOS HÁBITOS */
+
+@media (min-width: 700px) {
+    .habit-card {
+        padding: 20px;
+    }
+}
+
+/* =====================================
+   ORBIA — FREQUÊNCIA E METAS DOS HÁBITOS
+===================================== */
+
+.habit-modal-content > label {
+    display: block;
+    margin: 5px 0 8px;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+#custom-days {
+    display: none;
+    margin: 4px 0 16px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    background: var(--background);
+}
+
+.habit-field-title {
+    display: block;
+    margin-bottom: 12px;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.custom-days-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.custom-days-grid label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--text);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.custom-days-grid input {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--accent);
+}
+
+.habit-goal-input {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.habit-goal-input input {
+    width: 75px;
+    margin: 0;
+    text-align: center;
+}
+
+.habit-goal-input span {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+#cancel-habit {
+    background: var(--background);
+    color: var(--text);
+}
+
+#save-habit {
+    background: var(--accent);
+    color: #FFFFFF;
+}
+
+.habit-frequency-label {
+    align-self: flex-start;
+    padding: 5px 9px;
+    border-radius: 8px;
+    background: rgba(53, 184, 154, 0.10);
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.habit-goal-bar {
+    width: 100%;
+    height: 7px;
+    overflow: hidden;
+    border-radius: 20px;
+    background: var(--background);
+}
+
+.habit-goal-fill {
+    height: 100%;
+    border-radius: 20px;
+    background: var(--accent);
+    transition: width 0.3s ease;
+}
+
+.habit-week-day.not-scheduled strong {
+    opacity: 0.4;
+}
+
+.habit-check:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+@media (max-width: 380px) {
+    .custom-days-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .habit-stats {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
