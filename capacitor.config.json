@@ -1,0 +1,9 @@
+
+{
+  "appId": "com.orbia.app",
+  "appName": "ORBIA",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}
