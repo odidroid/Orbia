@@ -5,7 +5,7 @@
   "private": true,
   "description": "Organizador pessoal ORBIA",
   "scripts": {
-    "build": "echo ORBIA pronto para compilacao"
+    "build": "node -e \"const fs=require('fs');fs.mkdirSync('www',{recursive:true});['index.html','style.css','script.js','settings.js','goals.js','sleep.js'].forEach(f=>fs.copyFileSync(f,'www/'+f))\""
   },
   "dependencies": {
     "@capacitor/core": "^8.0.0",
