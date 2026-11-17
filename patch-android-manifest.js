@@ -298,15 +298,83 @@ const mipmapRoot = path.join(resRoot, "mipmap");
 const adaptiveRoot = path.join(resRoot, "mipmap-anydpi-v26");
 const drawableRoot = path.join(resRoot, "drawable");
 const valuesRoot = path.join(resRoot, "values");
+const rawRoot = path.join(resRoot, "raw");
 
 for (const directory of [
     mipmapRoot,
     adaptiveRoot,
     drawableRoot,
-    valuesRoot
+    valuesRoot,
+    rawRoot
 ]) {
     fs.mkdirSync(directory, { recursive: true });
 }
+
+
+// =====================================
+// SOM DE NOTIFICAÇÃO "ÓRBITA"
+// =====================================
+// Gera um WAV curto e original durante o build para o canal Android.
+function createOrbitaNotificationSound() {
+    const sampleRate = 22050;
+    const duration = 1.05;
+    const totalSamples = Math.floor(sampleRate * duration);
+    const dataSize = totalSamples * 2;
+    const wav = Buffer.alloc(44 + dataSize);
+    wav.write("RIFF", 0);
+    wav.writeUInt32LE(36 + dataSize, 4);
+    wav.write("WAVE", 8);
+    wav.write("fmt ", 12);
+    wav.writeUInt32LE(16, 16);
+    wav.writeUInt16LE(1, 20);
+    wav.writeUInt16LE(1, 22);
+    wav.writeUInt32LE(sampleRate, 24);
+    wav.writeUInt32LE(sampleRate * 2, 28);
+    wav.writeUInt16LE(2, 32);
+    wav.writeUInt16LE(16, 34);
+    wav.write("data", 36);
+    wav.writeUInt32LE(dataSize, 40);
+
+    const notes = [
+        { start: 0.02, duration: 0.30, frequency: 659.25, volume: 0.48 },
+        { start: 0.19, duration: 0.38, frequency: 880.00, volume: 0.42 },
+        { start: 0.43, duration: 0.52, frequency: 1108.73, volume: 0.34 }
+    ];
+
+    for (let i = 0; i < totalSamples; i++) {
+        const time = i / sampleRate;
+        let sample = 0;
+        for (const note of notes) {
+            const elapsed = time - note.start;
+            if (elapsed < 0 || elapsed > note.duration) continue;
+            const attack = Math.min(1, elapsed / 0.025);
+            const release = Math.min(1, (note.duration - elapsed) / 0.16);
+            const envelope = Math.max(0, Math.min(attack, release));
+            const fundamental = Math.sin(2 * Math.PI * note.frequency * elapsed);
+            const harmonic = 0.18 * Math.sin(2 * Math.PI * note.frequency * 2 * elapsed);
+            sample += note.volume * envelope * (fundamental + harmonic);
+        }
+        const softLimit = Math.tanh(sample * 0.8);
+        wav.writeInt16LE(Math.max(-1, Math.min(1, softLimit)) * 26000, 44 + i * 2);
+    }
+
+    fs.writeFileSync(path.join(rawRoot, "orbia_orbita.wav"), wav);
+}
+createOrbitaNotificationSound();
+
+// Ícone monocromático para a barra de status Android.
+const notificationIcon = `<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M12,3 A9,9 0,1 0 12,21 A9,9 0,1 0 12,3 Z" />
+    <path android:fillColor="#FF000000" android:pathData="M12,6 A6,6 0,1 1 12,18 A6,6 0,1 1 12,6 Z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M4,17 C8,9 15,5 21,7 L20,9 C15,8 9,12 6,18 Z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M17,4 A1.7,1.7 0,1 0 17,7.4 A1.7,1.7 0,1 0 17,4 Z" />
+</vector>`;
+fs.writeFileSync(path.join(drawableRoot, "ic_stat_orbia.xml"), notificationIcon);
 
 // =====================================
 // COR DE FUNDO
