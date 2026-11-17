@@ -378,7 +378,7 @@ function validateBackup(data) {
             record && typeof record === "object" && record.id !== undefined &&
             typeof record.description === "string" &&
             Number.isFinite(Number(record.amount)) && Number(record.amount) > 0 &&
-            typeof record.date === "string" && /^\\d{4}-\\d{2}-\\d{2}$/.test(record.date) &&
+            typeof record.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(record.date) &&
             ["income", "expense"].includes(record.type) && typeof record.category === "string"
         );
         const validBudgets = Object.values(data.finance.budgets).every(value =>
@@ -388,10 +388,10 @@ function validateBackup(data) {
     }
 
     if (data.sleep !== undefined) {
-        const validTime = value => typeof value === "string" && /^([01]\\d|2[0-3]):[0-5]\\d$/.test(value);
+        const validTime = value => typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
         if (!Array.isArray(data.sleep) || !data.sleep.every(record =>
             record && typeof record === "object" && record.id !== undefined &&
-            typeof record.date === "string" && /^\\d{4}-\\d{2}-\\d{2}$/.test(record.date) &&
+            typeof record.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(record.date) &&
             validTime(record.bedtime) && validTime(record.waketime)
         )) return false;
     }
