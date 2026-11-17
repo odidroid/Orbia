@@ -377,8 +377,8 @@ function validateBackup(data) {
         const settings = data.notificationSettings;
         if (!settings || typeof settings !== "object" || typeof settings.enabled !== "boolean" ||
             typeof settings.bedtime !== "string" || typeof settings.waketime !== "string" ||
-            !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(settings.bedtime) ||
-            !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(settings.waketime)) return false;
+            !/^([01]\d|2[0-3]):[0-5]\d$/.test(settings.bedtime) ||
+            !/^([01]\d|2[0-3]):[0-5]\d$/.test(settings.waketime)) return false;
     }
 
     const validGoals = (data.goals || []).every(goal => {
