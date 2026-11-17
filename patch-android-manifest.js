@@ -31,8 +31,6 @@ if (!manifest.includes("android.permission.SCHEDULE_EXACT_ALARM")) {
         /<application/,
         permission + "\n    <application"
     );
-
-    fs.writeFileSync(manifestPath, manifest);
 }
 
 // =====================================
@@ -302,5 +300,198 @@ if (!mainActivity.includes("BackupExporterPlugin.class")) {
     );
 }
 
+// =====================================
+// IDENTIDADE VISUAL — ÍCONE ORBIA
+// =====================================
+
+const resRoot = path.join(
+    androidRoot,
+    "app/src/main/res"
+);
+
+const mipmapRoot = path.join(
+    resRoot,
+    "mipmap"
+);
+
+const adaptiveRoot = path.join(
+    resRoot,
+    "mipmap-anydpi-v26"
+);
+
+const drawableRoot = path.join(
+    resRoot,
+    "drawable"
+);
+
+const valuesRoot = path.join(
+    resRoot,
+    "values"
+);
+
+for (const directory of [
+    mipmapRoot,
+    adaptiveRoot,
+    drawableRoot,
+    valuesRoot
+]) {
+    fs.mkdirSync(directory, { recursive: true });
+}
+
+// =====================================
+// COR DE FUNDO DO ÍCONE
+// =====================================
+
+const colorsPath = path.join(
+    valuesRoot,
+    "colors.xml"
+);
+
+let colorsXml;
+
+if (fs.existsSync(colorsPath)) {
+    colorsXml = fs.readFileSync(colorsPath, "utf8");
+} else {
+    colorsXml = `<?xml version="1.0" encoding="utf-8"?>
+<resources>
+</resources>`;
+}
+
+if (!colorsXml.includes('name="orbia_icon_background"')) {
+    colorsXml = colorsXml.replace(
+        "</resources>",
+        '    <color name="orbia_icon_background">#101722</color>\n</resources>'
+    );
+}
+
+fs.writeFileSync(colorsPath, colorsXml);
+
+// =====================================
+// SILHUETA E ÓRBITA — ÍCONE
+// =====================================
+
+const foregroundIcon = `<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#45D6B1"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:pathData="M15,72 C27,25 78,18 96,42 C106,56 84,83 57,88 C35,92 15,84 15,72" />
+
+    <path
+        android:fillColor="#8EAFFF"
+        android:pathData="M54,27 A8,8 0,1 0,54 43 A8,8 0,1 0,54 27" />
+
+    <path
+        android:fillColor="#8EAFFF"
+        android:pathData="M43,47 C39,48 36,53 36,59 L33,76 C32,80 35,83 39,83 C42,83 44,81 45,77 L49,63 L49,87 L59,87 L59,63 L63,77 C64,81 66,83 69,83 C73,83 76,80 75,76 L72,59 C72,53 69,48 65,47 Z" />
+
+    <path
+        android:fillColor="#45D6B1"
+        android:pathData="M91,37 A3.2,3.2 0,1 0,91 43.4 A3.2,3.2 0,1 0,91 37" />
+
+</vector>`;
+
+fs.writeFileSync(
+    path.join(drawableRoot, "orbia_icon_foreground.xml"),
+    foregroundIcon
+);
+
+// =====================================
+// ÍCONE LEGADO PARA ANDROID 5+
+/* ================================== */
+
+const legacyIcon = `<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path
+        android:fillColor="#101722"
+        android:pathData="M0,0 H108 V108 H0 Z" />
+
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#45D6B1"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:pathData="M15,72 C27,25 78,18 96,42 C106,56 84,83 57,88 C35,92 15,84 15,72" />
+
+    <path
+        android:fillColor="#8EAFFF"
+        android:pathData="M54,27 A8,8 0,1 0,54 43 A8,8 0,1 0,54 27" />
+
+    <path
+        android:fillColor="#8EAFFF"
+        android:pathData="M43,47 C39,48 36,53 36,59 L33,76 C32,80 35,83 39,83 C42,83 44,81 45,77 L49,63 L49,87 L59,87 L59,63 L63,77 C64,81 66,83 69,83 C73,83 76,80 75,76 L72,59 C72,53 69,48 65,47 Z" />
+
+    <path
+        android:fillColor="#45D6B1"
+        android:pathData="M91,37 A3.2,3.2 0,1 0,91 43.4 A3.2,3.2 0,1 0,91 37" />
+
+</vector>`;
+
+fs.writeFileSync(
+    path.join(mipmapRoot, "ic_launcher.xml"),
+    legacyIcon
+);
+
+fs.writeFileSync(
+    path.join(mipmapRoot, "ic_launcher_round.xml"),
+    legacyIcon
+);
+
+// =====================================
+// ÍCONES ADAPTÁVEIS — ANDROID 8+
+/* ================================== */
+
+const adaptiveIcon = `<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/orbia_icon_background" />
+    <foreground android:drawable="@drawable/orbia_icon_foreground" />
+</adaptive-icon>`;
+
+fs.writeFileSync(
+    path.join(adaptiveRoot, "ic_launcher.xml"),
+    adaptiveIcon
+);
+
+fs.writeFileSync(
+    path.join(adaptiveRoot, "ic_launcher_round.xml"),
+    adaptiveIcon
+);
+
+// =====================================
+// DEFINIR ÍCONE NO MANIFESTO
+// =====================================
+
+if (!manifest.includes("<application")) {
+    throw new Error("Tag application não encontrada no manifesto.");
+}
+
+manifest = manifest.replace(
+    /<application\b([^>]*)>/,
+    (match, attributes) => {
+        let updated = attributes
+            .replace(/\s+android:icon="[^"]*"/g, "")
+            .replace(/\s+android:roundIcon="[^"]*"/g, "");
+
+        return `<application${updated}
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round">`;
+    }
+);
+
+fs.writeFileSync(manifestPath, manifest);
+
 console.log("Permissão de alarmes exatos configurada.");
 console.log("Plugin nativo de backup criado e registrado.");
+console.log("Ícones ORBIA criados e configurados no Android.");
