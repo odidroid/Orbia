@@ -69,21 +69,6 @@ function generateBackupFileName() {
 
 
 // =====================================
-// ABRIR ALTERNATIVA DE CÓPIA MANUAL
-// =====================================
-
-function showManualBackup(content) {
-    backupJsonContent.value = content;
-    backupCopyStatus.textContent = "";
-    backupModal.classList.add("active");
-    backupJsonContent.scrollTop = 0;
-
-    backupStatus.textContent =
-        "Não foi possível salvar automaticamente. Você pode copiar o backup.";
-}
-
-
-// =====================================
 // EXPORTAR ARQUIVO
 // =====================================
 
@@ -99,64 +84,27 @@ async function saveBackupFile(content) {
         throw new Error("O backup gerado está vazio.");
     }
 
-    const verification = await blob.text();
-
-    if (verification !== content) {
-        throw new Error("Falha na verificação do conteúdo do backup.");
-    }
-
-    // OPÇÃO 1: COMPARTILHAMENTO NATIVO DO ANDROID
+    // OPÇÃO 1: SALVAMENTO NATIVO DO ANDROID
 
     if (
-        typeof navigator.share === "function" &&
-        typeof File === "function"
+        window.OrbiaBackupExporter &&
+        window.OrbiaBackupExporter.isAvailable
     ) {
-        try {
-            const file = new File(
-                [blob],
-                fileName,
-                {
-                    type: "application/json",
-                    lastModified: Date.now()
-                }
+        const result = await window.OrbiaBackupExporter.save(
+            fileName,
+            content
+        );
+
+        if (!result || result.success !== true) {
+            throw new Error(
+                "O Android não confirmou o salvamento do backup."
             );
-
-            if (file.size !== blob.size || file.size === 0) {
-                throw new Error("O arquivo gerado não passou na verificação.");
-            }
-
-            const shareData = {
-                title: "Backup do ORBIA",
-                text: "Salve este arquivo para proteger seus dados do ORBIA.",
-                files: [file]
-            };
-
-            const canShareFiles =
-                typeof navigator.canShare === "function"
-                    ? navigator.canShare({ files: [file] })
-                    : true;
-
-            if (canShareFiles) {
-                await navigator.share(shareData);
-                return "shared";
-            }
-
-        } catch (error) {
-            // Não interpretar automaticamente AbortError como cancelamento.
-            // Alguns WebViews Android retornam esse erro sem abrir o compartilhamento.
-
-            console.warn(
-                "Compartilhamento nativo indisponível:",
-                error
-            );
-
-            if (error.name === "AbortError") {
-                return "fallback";
-            }
         }
+
+        return "native";
     }
 
-    // OPÇÃO 2: JANELA NATIVA PARA SALVAR
+    // OPÇÃO 2: JANELA NATIVA DO NAVEGADOR
 
     if (typeof window.showSaveFilePicker === "function") {
         try {
@@ -178,14 +126,14 @@ async function saveBackupFile(content) {
             return "saved";
 
         } catch (error) {
+            if (error.name === "AbortError") {
+                return "cancelled";
+            }
+
             console.warn(
-                "Salvamento nativo indisponível:",
+                "Janela de salvamento indisponível:",
                 error
             );
-
-            if (error.name === "AbortError") {
-                return "fallback";
-            }
         }
     }
 
@@ -218,9 +166,7 @@ async function saveBackupFile(content) {
             URL.revokeObjectURL(downloadUrl);
         }
 
-        console.error("Falha no download:", error);
-
-        return "fallback";
+        throw error;
     }
 }
 
@@ -239,9 +185,9 @@ async function exportBackup() {
 
         const result = await saveBackupFile(content);
 
-        if (result === "shared") {
+        if (result === "native") {
             backupStatus.textContent =
-                "Arquivo enviado ao compartilhamento do Android. Escolha onde deseja salvá-lo.";
+                "Backup salvo com sucesso em Downloads/ORBIA!";
 
             return;
         }
@@ -260,13 +206,15 @@ async function exportBackup() {
             return;
         }
 
-        if (result === "fallback") {
-            showManualBackup(content);
+        if (result === "cancelled") {
+            backupStatus.textContent =
+                "Salvamento cancelado.";
+
             return;
         }
 
     } catch (error) {
-        console.error("Erro ao exportar:", error);
+        console.error("Erro ao exportar backup:", error);
 
         backupStatus.textContent =
             "Erro na exportação: " + error.message;
@@ -277,7 +225,7 @@ exportBackupButton.addEventListener("click", exportBackup);
 
 
 // =====================================
-// COPIAR BACKUP
+// COPIAR BACKUP (RECURSO MANUAL)
 // =====================================
 
 async function copyBackup() {
