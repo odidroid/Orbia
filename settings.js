@@ -573,8 +573,8 @@ importBackupFile.addEventListener("change", async event => {
         saveHabits();
         saveGoals();
 
-        if (window.OrbiaFinance) {
-            window.OrbiaFinance.restoreData(backup.finance || { records: [], budgets: {} });
+        if (window.OrbiaFinance && backup.finance) {
+            window.OrbiaFinance.restoreData(backup.finance);
         }
 
         renderActivities();
