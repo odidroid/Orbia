@@ -164,6 +164,16 @@ import { LocalNotifications } from "@capacitor/local-notifications";
             await createChannel();
 
             if (exactAlarm !== "granted") {
+                // Remove a fila antiga de lembretes de sono, que podia conter
+                // até 60 avisos da janela anterior de 30 dias. Preserva os
+                // demais lembretes enquanto a permissão especial estiver bloqueada.
+                const pendingWithoutExact = await LocalNotifications.getPending();
+                const oldSleepReminders = (pendingWithoutExact.notifications || [])
+                    .filter(item => item.extra && item.extra.orbiaManaged && item.extra.category === "sleep")
+                    .map(item => ({ id: item.id }));
+                if (oldSleepReminders.length) {
+                    await LocalNotifications.cancel({ notifications: oldSleepReminders });
+                }
                 return { scheduled: 0, permission: "granted", exactAlarm };
             }
 
