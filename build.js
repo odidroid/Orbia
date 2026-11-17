@@ -16,7 +16,8 @@ async function build() {
         "sleep.js",
         "finance.js",
         "splash.css",
-        "splash.js"
+        "splash.js",
+        "sounds.js"
     ];
 
     fs.mkdirSync(output, { recursive: true });
