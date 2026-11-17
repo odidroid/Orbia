@@ -410,8 +410,6 @@ const legacyIcon = `<?xml version="1.0" encoding="utf-8"?>
         android:pathData="M0,0 H108 V108 H0 Z" />
 
     ${orbit}
-    ${personHead}
-    ${personBody}
     ${dot}
 
 </vector>`;
@@ -486,4 +484,4 @@ fs.writeFileSync(manifestPath, manifest);
 
 console.log("Permissão de alarmes exatos configurada.");
 console.log("Plugin nativo de backup criado e registrado.");
-console.log("Ícones ORBIA atualizados com silhueta lateral.");
+console.log("Ícones ORBIA atualizados com identidade orbital.");
