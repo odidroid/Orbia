@@ -315,6 +315,23 @@ import { LocalNotifications } from "@capacitor/local-notifications";
         }).catch(() => showStatus("Não foi possível verificar as permissões.", true));
     }
 
+    // Revalida os lembretes quando o usuário volta ao aplicativo.
+    // Isso recupera alterações feitas enquanto o ORBIA estava em segundo plano.
+    let lastForegroundSync = 0;
+
+    function refreshWhenForeground() {
+        const now = Date.now();
+        if (document.visibilityState === "hidden" || now - lastForegroundSync < 5000) {
+            return;
+        }
+        lastForegroundSync = now;
+        queueSync();
+    }
+
+    document.addEventListener("visibilitychange", refreshWhenForeground);
+    window.addEventListener("focus", refreshWhenForeground);
+    window.addEventListener("pageshow", refreshWhenForeground);
+
     window.addEventListener("orbia:data-changed", queueSync);
     if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", mountInterface, { once: true });
