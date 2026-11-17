@@ -163,6 +163,10 @@ import { LocalNotifications } from "@capacitor/local-notifications";
             }
             await createChannel();
 
+            if (exactAlarm !== "granted") {
+                return { scheduled: 0, permission: "granted", exactAlarm };
+            }
+
             const pending = await LocalNotifications.getPending();
             const managed = (pending.notifications || [])
                 .filter(item => item.extra && item.extra.orbiaManaged)
@@ -257,7 +261,8 @@ import { LocalNotifications } from "@capacitor/local-notifications";
         card.innerHTML = `
             <h2>🔔 Lembretes inteligentes</h2>
             <p class="settings-description">O ORBIA programa lembretes para atividades, hábitos e prazos de metas. Os avisos são processados pelo Android e podem chegar mesmo com o aplicativo fechado.</p>
-            <button type="button" id="orbia-enable-notifications" class="settings-button">Ativar notificações</button>
+            <button type="button" id="orbia-enable-notifications" class="settings-button">Ativar notificações e alarmes</button>
+            <p class="settings-description">Para lembretes fora do aplicativo, o Android precisa permitir notificações e Alarmes e lembretes. Em celulares Redmi/Xiaomi, deixe a bateria do ORBIA como Sem restrições e permita a Inicialização automática.</p>
             <button type="button" id="orbia-sync-notifications" class="settings-button secondary">Atualizar lembretes</button>
             <div class="settings-divider"></div>
             <strong>Rotina de sono</strong>
@@ -288,7 +293,11 @@ import { LocalNotifications } from "@capacitor/local-notifications";
             enable.disabled = true;
             try {
                 const result = await requestPermission();
-                if (result.display === "granted") showStatus("Permissão concedida. Lembretes atualizados.");
+                if (result.display === "granted") {
+                    const exact = await LocalNotifications.checkExactNotificationSetting();
+                    if (exact.exact_alarm === "granted") showStatus("Permissões concedidas. Lembretes atualizados.");
+                    else showStatus("As notificações estão autorizadas, mas Alarmes e lembretes ainda estão desativados. Ative essa permissão nas configurações do Android.", true);
+                }
                 else showStatus("Permissão não concedida. Verifique as configurações do Android.", true);
             } catch (error) {
                 showStatus(error.message, true);
@@ -303,7 +312,7 @@ import { LocalNotifications } from "@capacitor/local-notifications";
                 const result = await syncAll();
                 showStatus(result.permission && result.permission !== "granted"
                     ? "Permissão pendente. Ative as notificações para programar lembretes."
-                    : result.scheduled + " lembretes programados.");
+                    : result.scheduled + " lembretes programados." + (result.exactAlarm === "denied" ? " Ative Alarmes e lembretes no Android." : ""));
             } catch (error) {
                 showStatus("Não foi possível atualizar: " + error.message, true);
             } finally {
@@ -340,7 +349,10 @@ import { LocalNotifications } from "@capacitor/local-notifications";
 
         checkPermissions().then(result => {
             if (result.display === "granted") {
-                syncAll().then(data => showStatus(data.scheduled + " lembretes programados." + (data.exactAlarm === "denied" ? " Alarmes exatos estão desativados no Android." : ""))).catch(error => showStatus(error.message, true));
+                syncAll().then(data => {
+                    if (data.exactAlarm === "denied") showStatus("Permissão de notificações concedida. Falta permitir Alarmes e lembretes nas configurações do Android.", true);
+                    else showStatus(data.scheduled + " lembretes programados.");
+                }).catch(error => showStatus(error.message, true));
             } else {
                 showStatus("Ative as notificações para receber lembretes de agenda e hábitos.");
             }
