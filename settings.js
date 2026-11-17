@@ -43,7 +43,8 @@ function generateBackupContent() {
         exportedAt: new Date().toISOString(),
         activities: activities,
         habits: habits,
-        goals: goals
+        goals: goals,
+        finance: window.OrbiaFinance ? window.OrbiaFinance.getBackupData() : { records: [], budgets: {} }
     };
 
     return JSON.stringify(backup, null, 2);
@@ -365,6 +366,8 @@ function validateBackup(data) {
         );
     });
 
+    if (data.finance !== undefined && (!data.finance || typeof data.finance !== "object" || !Array.isArray(data.finance.records) || !data.finance.budgets || typeof data.finance.budgets !== "object" || Array.isArray(data.finance.budgets))) return false;
+
     const validGoals = (data.goals || []).every(goal => {
         return (
             goal &&
@@ -547,7 +550,7 @@ importBackupFile.addEventListener("change", async event => {
 
         const confirmed = confirm(
             "Importar este backup substituirá suas atividades, " +
-            "hábitos e metas atuais.\n\n" +
+            "hábitos, metas e dados financeiros atuais.\n\n" +
             "Deseja continuar?"
         );
 
@@ -569,6 +572,10 @@ importBackupFile.addEventListener("change", async event => {
         saveActivities();
         saveHabits();
         saveGoals();
+
+        if (window.OrbiaFinance && backup.finance) {
+            window.OrbiaFinance.restoreData(backup.finance);
+        }
 
         renderActivities();
         renderHabits();

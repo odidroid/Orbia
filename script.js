@@ -76,6 +76,7 @@ function saveActivities() {
         "orbia-activities",
         JSON.stringify(activities)
     );
+    window.dispatchEvent(new Event("orbia:data-changed"));
 }
 
 saveActivities();
@@ -132,6 +133,7 @@ function saveHabits() {
         "orbia-habits",
         JSON.stringify(habits)
     );
+    window.dispatchEvent(new Event("orbia:data-changed"));
 }
 
 saveHabits();
@@ -475,6 +477,9 @@ habitModal.innerHTML = `
         <input type="text" id="habit-icon"
             placeholder="Emoji (ex.: 💧)" maxlength="4">
 
+        <label for="habit-reminder-time">Horário do lembrete</label>
+        <input type="time" id="habit-reminder-time" value="09:00">
+
         <label for="habit-frequency">Frequência</label>
         <select id="habit-frequency">
             <option value="daily">Todos os dias</option>
@@ -520,6 +525,7 @@ const habitModalTitle = habitModal.querySelector("h2");
 const habitNameInput = document.getElementById("habit-name");
 const habitIconInput = document.getElementById("habit-icon");
 const habitFrequencyInput = document.getElementById("habit-frequency");
+const habitReminderTimeInput = document.getElementById("habit-reminder-time");
 const habitGoalInput = document.getElementById("habit-goal");
 const customDaysContainer = document.getElementById("custom-days");
 
@@ -918,6 +924,7 @@ function openHabitModal(habit = null) {
 
         habitNameInput.value = habit.name;
         habitIconInput.value = habit.icon || "";
+        habitReminderTimeInput.value = habit.reminderTime || "09:00";
 
         habitFrequencyInput.value = habit.frequency || "daily";
 
@@ -936,6 +943,7 @@ function openHabitModal(habit = null) {
 
         habitNameInput.value = "";
         habitIconInput.value = "";
+        habitReminderTimeInput.value = "09:00";
 
         habitFrequencyInput.value = "daily";
         habitGoalInput.value = 7;
@@ -971,6 +979,7 @@ function closeHabitModal() {
 
     habitNameInput.value = "";
     habitIconInput.value = "";
+    habitReminderTimeInput.value = "09:00";
 
     habitFrequencyInput.value = "daily";
     habitGoalInput.value = 7;
@@ -1053,6 +1062,7 @@ saveHabitButton.addEventListener("click", () => {
             habit.frequency = frequency;
             habit.daysOfWeek = daysOfWeek;
             habit.weeklyGoal = weeklyGoal;
+            habit.reminderTime = habitReminderTimeInput.value || "09:00";
         }
     } else {
         habits.push({
@@ -1062,6 +1072,7 @@ saveHabitButton.addEventListener("click", () => {
             frequency,
             daysOfWeek,
             weeklyGoal,
+            reminderTime: habitReminderTimeInput.value || "09:00",
             completedDates: []
         });
     }

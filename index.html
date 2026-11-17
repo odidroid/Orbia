@@ -440,38 +440,31 @@
         </div>
     </div>
 
-    <nav class="bottom-navigation">
-
-        <button type="button" id="nav-home" class="active">
-            ⌂
-            <span>Início</span>
+    <nav class="bottom-navigation" aria-label="Navegação principal">
+        <button type="button" id="nav-home" class="active" aria-label="Início">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Início</span>
         </button>
-
-        <button type="button" id="nav-agenda">
-            ▦
-            <span>Agenda</span>
+        <button type="button" id="nav-agenda" aria-label="Agenda">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg><span>Agenda</span>
         </button>
-
-        <button type="button" id="nav-habits">
-            ◷
-            <span>Hábitos</span>
+        <button type="button" id="nav-habits" aria-label="Hábitos">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9"/><path d="M12 7v5l3 2M16 3h5v5"/></svg><span>Hábitos</span>
         </button>
-
-        <button type="button" id="nav-goals">
-            ◎
-            <span>Metas</span>
+        <button type="button" id="nav-goals" aria-label="Metas">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg><span>Metas</span>
         </button>
-
-        <button type="button" id="nav-settings">
-            ⚙
-            <span>Ajustes</span>
+        <button type="button" id="nav-finance" aria-label="Finanças">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="15" rx="2"/><path d="M3 10h18M7 15h4"/></svg><span>Finanças</span>
         </button>
-
+        <button type="button" id="nav-settings" aria-label="Ajustes">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.6a8 8 0 0 1-1.5.9l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.5-.9l-1.7.6-1.4-2.4 1.4-1.1a8 8 0 0 1 0-1.8l-1.4-1.1 1.4-2.4 1.7.6a8 8 0 0 1 1.5-.9l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.5.9l1.7-.6 1.4 2.4-1.4 1.1a8 8 0 0 1 0 1.8Z"/></svg><span>Ajustes</span>
+        </button>
     </nav>
 
     <script src="script.js"></script>
     <script src="goals.js"></script>
     <script src="sleep.js"></script>
+    <script src="finance.js"></script>
     <script src="settings.js"></script>
 
 </body>

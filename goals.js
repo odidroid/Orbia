@@ -28,6 +28,7 @@ function saveGoals() {
         "orbia-goals",
         JSON.stringify(goals)
     );
+    window.dispatchEvent(new Event("orbia:data-changed"));
 }
 
 
