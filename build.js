@@ -79,7 +79,8 @@ async function build() {
     const scripts = [
         "notifications.js",
         "backup-exporter.js",
-        "splash.js"
+        "splash.js",
+        "sounds.js"
     ];
 
     for (const script of scripts) {
