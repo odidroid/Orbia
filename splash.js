@@ -30,7 +30,6 @@
                         transform="rotate(-25 54 54)"
                     />
 
-                    <!-- Cabeça de perfil -->
                     <path
                         class="orbia-person"
                         d="
@@ -46,7 +45,6 @@
                         "
                     />
 
-                    <!-- Corpo lateral minimalista -->
                     <path
                         class="orbia-person"
                         d="
@@ -100,6 +98,10 @@
 
             window.setTimeout(() => {
                 splash.remove();
+
+                document.documentElement.classList.remove(
+                    "orbia-loading"
+                );
             }, 700);
 
         }, 3200);
