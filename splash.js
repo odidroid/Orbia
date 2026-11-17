@@ -19,13 +19,9 @@
                     aria-hidden="true"
                 >
                     <path
-                        class="orbia-orbit-secondary"
-                        d="M 19 78 C 34 96, 79 99, 101 72"
-                    />
-                    <path
                         id="orbia-orbit-path"
                         class="orbia-orbit"
-                        d="M 13 60 C 25 22, 93 17, 107 54 C 121 91, 44 111, 17 78 C 11 70, 10 64, 13 60"
+                        d="M 60 18 A 42 42 0 1 1 59.999 18"
                     />
                     <circle class="orbia-orbit-dot" r="3.5">
                         <animateMotion
