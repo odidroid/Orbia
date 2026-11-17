@@ -370,9 +370,32 @@ function validateBackup(data) {
         );
     });
 
-    if (data.finance !== undefined && (!data.finance || typeof data.finance !== "object" || !Array.isArray(data.finance.records) || !data.finance.budgets || typeof data.finance.budgets !== "object" || Array.isArray(data.finance.budgets))) return false;
+    if (data.finance !== undefined) {
+        if (!data.finance || typeof data.finance !== "object" ||
+            !Array.isArray(data.finance.records) || !data.finance.budgets ||
+            typeof data.finance.budgets !== "object" || Array.isArray(data.finance.budgets)) return false;
+        const validFinanceRecords = data.finance.records.every(record =>
+            record && typeof record === "object" && record.id !== undefined &&
+            typeof record.description === "string" &&
+            Number.isFinite(Number(record.amount)) && Number(record.amount) > 0 &&
+            typeof record.date === "string" && /^\\d{4}-\\d{2}-\\d{2}$/.test(record.date) &&
+            ["income", "expense"].includes(record.type) && typeof record.category === "string"
+        );
+        const validBudgets = Object.values(data.finance.budgets).every(value =>
+            Number.isFinite(Number(value)) && Number(value) >= 0
+        );
+        if (!validFinanceRecords || !validBudgets) return false;
+    }
 
-    if (data.sleep !== undefined && !Array.isArray(data.sleep)) return false;
+    if (data.sleep !== undefined) {
+        const validTime = value => typeof value === "string" && /^([01]\\d|2[0-3]):[0-5]\\d$/.test(value);
+        if (!Array.isArray(data.sleep) || !data.sleep.every(record =>
+            record && typeof record === "object" && record.id !== undefined &&
+            typeof record.date === "string" && /^\\d{4}-\\d{2}-\\d{2}$/.test(record.date) &&
+            validTime(record.bedtime) && validTime(record.waketime)
+        )) return false;
+    }
+
     if (data.notificationSettings !== undefined) {
         const settings = data.notificationSettings;
         if (!settings || typeof settings !== "object" || typeof settings.enabled !== "boolean" ||
@@ -572,41 +595,74 @@ importBackupFile.addEventListener("change", async event => {
             return;
         }
 
-        activities = backup.activities.map(activity => ({
-            ...activity,
-            done: Boolean(activity.done)
-        }));
+        const storageKeys = [
+            "orbia-activities", "orbia-habits", "orbia-goals",
+            "orbia-finance-records", "orbia-finance-budgets",
+            "orbia-sleep", "orbia-sleep-reminders"
+        ];
+        const previousStorage = Object.fromEntries(storageKeys.map(key => [key, localStorage.getItem(key)]));
+        const previousState = { activities, habits, goals };
+        const previousFinance = window.OrbiaFinance ? window.OrbiaFinance.getBackupData() : null;
+        const previousSleep = window.OrbiaSleep ? window.OrbiaSleep.getBackupData() : null;
+        const previousNotifications = window.OrbiaNotifications && window.OrbiaNotifications.getSettings
+            ? window.OrbiaNotifications.getSettings()
+            : null;
 
-        habits = normalizeImportedHabits(backup.habits);
+        try {
+            activities = backup.activities.map(activity => ({
+                ...activity,
+                done: Boolean(activity.done)
+            }));
+            habits = normalizeImportedHabits(backup.habits);
 
-        // Backups antigos não possuem metas.
-        if (Array.isArray(backup.goals)) {
-            goals = normalizeImportedGoals(backup.goals);
-            saveGoals();
+            if (Array.isArray(backup.goals)) {
+                goals = normalizeImportedGoals(backup.goals);
+                saveGoals();
+            }
+
+            saveActivities();
+            saveHabits();
+
+            if (window.OrbiaFinance && backup.finance) window.OrbiaFinance.restoreData(backup.finance);
+            if (window.OrbiaSleep && Array.isArray(backup.sleep)) window.OrbiaSleep.restoreData(backup.sleep);
+            if (window.OrbiaNotifications && backup.notificationSettings && window.OrbiaNotifications.restoreSettings) {
+                window.OrbiaNotifications.restoreSettings(backup.notificationSettings);
+            }
+
+            renderActivities();
+            renderHabits();
+            renderWeek();
+            renderGoals();
+            backupStatus.textContent = "Backup importado com sucesso! Dados disponíveis foram restaurados.";
+        } catch (restoreError) {
+            activities = previousState.activities;
+            habits = previousState.habits;
+            goals = previousState.goals;
+
+            for (const key of storageKeys) {
+                try {
+                    const previousValue = previousStorage[key];
+                    if (previousValue === null) localStorage.removeItem(key);
+                    else localStorage.setItem(key, previousValue);
+                } catch (rollbackError) {
+                    console.error("Falha ao reverter " + key + ":", rollbackError);
+                }
+            }
+
+            try {
+                if (previousFinance && window.OrbiaFinance) window.OrbiaFinance.restoreData(previousFinance);
+                if (previousSleep && window.OrbiaSleep) window.OrbiaSleep.restoreData(previousSleep);
+                if (previousNotifications && window.OrbiaNotifications) window.OrbiaNotifications.restoreSettings(previousNotifications);
+            } catch (rollbackError) {
+                console.error("Falha ao reverter módulos do backup:", rollbackError);
+            }
+
+            renderActivities();
+            renderHabits();
+            renderWeek();
+            renderGoals();
+            throw new Error("A importação foi revertida para proteger seus dados: " + restoreError.message);
         }
-
-        saveActivities();
-        saveHabits();
-
-        if (window.OrbiaFinance && backup.finance) {
-            window.OrbiaFinance.restoreData(backup.finance);
-        }
-
-        if (window.OrbiaSleep && Array.isArray(backup.sleep)) {
-            window.OrbiaSleep.restoreData(backup.sleep);
-        }
-
-        if (window.OrbiaNotifications && backup.notificationSettings && window.OrbiaNotifications.restoreSettings) {
-            window.OrbiaNotifications.restoreSettings(backup.notificationSettings);
-        }
-
-        renderActivities();
-        renderHabits();
-        renderWeek();
-        renderGoals();
-
-        backupStatus.textContent =
-            "Backup importado com sucesso! Dados disponíveis foram restaurados.";
 
     } catch (error) {
         console.error("Erro ao importar backup:", error);
