@@ -5,9 +5,11 @@ const RECORDS_KEY="orbia-finance-records", BUDGETS_KEY="orbia-finance-budgets";
 const money=new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"});
 function read(key,fallback){try{const raw=localStorage.getItem(key);const v=JSON.parse(raw||"null");return v??fallback}catch(e){try{const raw=localStorage.getItem(key);if(raw!==null)localStorage.setItem("orbia-recovery-"+key,raw)}catch(recoveryError){console.error("Não foi possível preservar dados financeiros inválidos:",recoveryError)}console.error("Dados financeiros inválidos em "+key,e);return fallback}}
 let records=read(RECORDS_KEY,[]), budgets=read(BUDGETS_KEY,{});
-if(!Array.isArray(records))records=[];
-if(!budgets||typeof budgets!=="object"||Array.isArray(budgets))budgets={};
-records=records.filter(x=>x&&x.id!==undefined&&["income","expense"].includes(x.type)&&Number(x.amount)>0&&typeof x.date==="string");
+if(!Array.isArray(records)){try{const raw=localStorage.getItem(RECORDS_KEY);if(raw!==null)localStorage.setItem("orbia-recovery-"+RECORDS_KEY,raw)}catch(e){console.error("Falha ao preservar lançamentos inválidos:",e)}records=[]}
+if(!budgets||typeof budgets!=="object"||Array.isArray(budgets)){try{const raw=localStorage.getItem(BUDGETS_KEY);if(raw!==null)localStorage.setItem("orbia-recovery-"+BUDGETS_KEY,raw)}catch(e){console.error("Falha ao preservar orçamentos inválidos:",e)}budgets={}}
+const validRecords=records.filter(x=>x&&typeof x==="object"&&x.id!==undefined&&["income","expense"].includes(x.type)&&Number(x.amount)>0&&typeof x.date==="string"&&typeof x.description==="string");
+if(validRecords.length!==records.length){try{const raw=localStorage.getItem(RECORDS_KEY);if(raw!==null)localStorage.setItem("orbia-recovery-"+RECORDS_KEY,raw)}catch(e){console.error("Falha ao preservar lançamentos incompletos:",e)}}
+records=validRecords;
 function save(){localStorage.setItem(RECORDS_KEY,JSON.stringify(records));localStorage.setItem(BUDGETS_KEY,JSON.stringify(budgets));window.dispatchEvent(new Event("orbia:data-changed"))}
 function today(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 function month(){return today().slice(0,7)}
