@@ -4,7 +4,7 @@ import { LocalNotifications } from "@capacitor/local-notifications";
 (() => {
     "use strict";
 
-    const CHANNEL_ID = "orbia-reminders";
+    const CHANNEL_ID = "orbia-reminders-v2";
     const TEST_ID = 906202611;
     const SLEEP_KEY = "orbia-sleep-reminders";
     const isNative = Capacitor.isNativePlatform();
@@ -51,6 +51,7 @@ import { LocalNotifications } from "@capacitor/local-notifications";
                 id: CHANNEL_ID,
                 name: "Lembretes ORBIA",
                 description: "Lembretes de agenda, hábitos, metas e sono",
+                sound: "orbia_orbita.wav",
                 importance: 5,
                 vibration: true
             });
@@ -69,6 +70,15 @@ import { LocalNotifications } from "@capacitor/local-notifications";
         const result = await LocalNotifications.requestPermissions();
         if (result.display === "granted") {
             await createChannel();
+            try {
+                const exact = await LocalNotifications.checkExactNotificationSetting();
+                if (exact.exact_alarm !== "granted") {
+                    showStatus("Para receber lembretes no horário certo, autorize Alarmes e lembretes na próxima tela do Android.");
+                    await LocalNotifications.changeExactNotificationSetting();
+                }
+            } catch (exactError) {
+                console.warn("Não foi possível verificar alarmes exatos:", exactError);
+            }
             await syncAll();
         }
         return result;
@@ -83,6 +93,7 @@ import { LocalNotifications } from "@capacitor/local-notifications";
             body,
             channelId: CHANNEL_ID,
             schedule: { at: date, allowWhileIdle: true },
+            isExactNotification: true,
             extra: { category, orbiaManaged: true, orbiaKey: key }
         });
     }
@@ -143,6 +154,13 @@ import { LocalNotifications } from "@capacitor/local-notifications";
         try {
             const permission = await checkPermissions();
             if (permission.display !== "granted") return { scheduled: 0, permission: permission.display };
+            let exactAlarm = "granted";
+            try {
+                const exact = await LocalNotifications.checkExactNotificationSetting();
+                exactAlarm = exact.exact_alarm || "granted";
+            } catch (exactError) {
+                console.warn("Não foi possível verificar alarmes exatos:", exactError);
+            }
             await createChannel();
 
             const pending = await LocalNotifications.getPending();
@@ -158,7 +176,7 @@ import { LocalNotifications } from "@capacitor/local-notifications";
             if (queue.length) {
                 await LocalNotifications.schedule({ notifications: queue });
             }
-            return { scheduled: queue.length };
+            return { scheduled: queue.length, exactAlarm };
         } finally {
             syncing = false;
         }
@@ -169,7 +187,7 @@ import { LocalNotifications } from "@capacitor/local-notifications";
         syncTimer = setTimeout(() => {
             syncAll().then(result => {
                 if (result.permission === "granted" || result.scheduled) {
-                    showStatus(result.scheduled + " lembretes programados.");
+                    showStatus(result.scheduled + " lembretes programados." + (result.exactAlarm === "denied" ? " Atenção: permita Alarmes e lembretes para maior precisão." : ""));
                 }
             }).catch(error => showStatus("Falha ao atualizar lembretes: " + error.message, true));
         }, 450);
@@ -186,8 +204,10 @@ import { LocalNotifications } from "@capacitor/local-notifications";
                 id: TEST_ID,
                 title: "ORBIA está funcionando! 🔔",
                 body: "Sua central de lembretes está ativa.",
+                sound: "orbia_orbita.wav",
                 channelId: CHANNEL_ID,
                 schedule: { at: new Date(Date.now() + 15000), allowWhileIdle: true },
+                isExactNotification: true,
                 extra: { category: "test" }
             }]
         });
@@ -320,7 +340,7 @@ import { LocalNotifications } from "@capacitor/local-notifications";
 
         checkPermissions().then(result => {
             if (result.display === "granted") {
-                syncAll().then(data => showStatus(data.scheduled + " lembretes programados.")).catch(error => showStatus(error.message, true));
+                syncAll().then(data => showStatus(data.scheduled + " lembretes programados." + (data.exactAlarm === "denied" ? " Alarmes exatos estão desativados no Android." : ""))).catch(error => showStatus(error.message, true));
             } else {
                 showStatus("Ative as notificações para receber lembretes de agenda e hábitos.");
             }
