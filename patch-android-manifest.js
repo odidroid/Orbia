@@ -436,8 +436,6 @@ const foregroundIcon = `<?xml version="1.0" encoding="utf-8"?>
     android:viewportHeight="108">
 
     ${orbit}
-    ${personHead}
-    ${personBody}
     ${dot}
 
 </vector>`;
