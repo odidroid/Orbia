@@ -16,8 +16,8 @@ import { LocalNotifications } from "@capacitor/local-notifications";
             const value = JSON.parse(localStorage.getItem(SLEEP_KEY) || "{}");
             return {
                 enabled: value.enabled === true,
-                bedtime: /^([01]\\d|2[0-3]):[0-5]\\d$/.test(value.bedtime || "") ? value.bedtime : "22:00",
-                waketime: /^([01]\\d|2[0-3]):[0-5]\\d$/.test(value.waketime || "") ? value.waketime : "07:00"
+                bedtime: /^([01]\d|2[0-3]):[0-5]\d$/.test(value.bedtime || "") ? value.bedtime : "22:00",
+                waketime: /^([01]\d|2[0-3]):[0-5]\d$/.test(value.waketime || "") ? value.waketime : "07:00"
             };
         } catch {
             return { enabled: false, bedtime: "22:00", waketime: "07:00" };
