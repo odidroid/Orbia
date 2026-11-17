@@ -323,7 +323,7 @@ let colorsXml = fs.existsSync(colorsPath)
 if (!colorsXml.includes('name="orbia_icon_background"')) {
     colorsXml = colorsXml.replace(
         "</resources>",
-        '    <color name="orbia_icon_background">#101722</color>\n</resources>'
+        '    <color name="orbia_icon_background">#263B63</color>\n</resources>'
     );
 }
 
@@ -333,66 +333,35 @@ fs.writeFileSync(colorsPath, colorsXml);
 // SILHUETA LATERAL MINIMALISTA
 // =====================================
 
-const personHead = `
-    <path
-        android:fillColor="#8EAFFF"
-        android:pathData="
-            M49,23
-            C53,20 59,22 61,27
-            C63,30 62,34 60,37
-            L64,40
-            L59,42
-            C57,45 52,45 49,42
-            C45,39 44,34 45,30
-            C45,27 46,25 49,23 Z
-        " />`;
-
-const personBody = `
-    <path
-        android:fillColor="#8EAFFF"
-        android:pathData="
-            M49,44
-            C46,46 45,50 46,55
-            L49,64
-            L45,78
-            C44,81 46,83 49,83
-            C51,83 52,81 53,78
-            L57,65
-            L59,78
-            C60,81 62,82 64,81
-            C66,80 66,78 65,75
-            L62,61
-            L63,51
-            C65,54 68,56 72,57
-            L77,57
-            C79,57 80,55 79,53
-            C78,51 76,51 73,51
-            L68,49
-            L65,44
-            C61,41 54,41 49,44 Z
-        " />`;
-
 const orbit = `
     <path
         android:fillColor="#00000000"
-        android:strokeColor="#45D6B1"
-        android:strokeWidth="1.8"
+        android:strokeColor="#8EAFFF"
+        android:strokeWidth="5"
         android:strokeLineCap="round"
-        android:pathData="
-            M15,72
-            C27,25 78,18 96,42
-            C106,56 84,83 57,88
-            C35,92 15,84 15,72
-        " />`;
+        android:pathData="M54,19 C76,19 91,34 91,54 C91,74 76,89 54,89 C32,89 17,74 17,54 C17,34 32,19 54,19 Z" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#45D6B1"
+        android:strokeWidth="4.5"
+        android:strokeLineCap="round"
+        android:pathData="M25,78 C35,55 61,31 84,30" />
+    <path
+        android:fillColor="#45D6B1"
+        android:pathData="M80,24 A6,6 0,1 0 80,36 A6,6 0,1 0 80,24 Z" />
+    <path
+        android:fillColor="#DDFBF4"
+        android:pathData="M54,39 A15,15 0,1 0 54,69 A15,15 0,1 0 54,39 Z" />
+    <path
+        android:fillColor="#45D6B1"
+        android:pathData="M54,45 A9,9 0,1 0 54,63 A9,9 0,1 0 54,45 Z" />
+`;
 
 const dot = `
     <path
-        android:fillColor="#45D6B1"
-        android:pathData="
-            M91,37
-            A3.2,3.2 0,1 0 91,43.4
-            A3.2,3.2 0,1 0 91,37
-        " />`;
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,49 A5,5 0,1 0 54,59 A5,5 0,1 0 54,49 Z" />
+`;
 
 // =====================================
 // ÍCONE VETORIAL LEGADO
@@ -406,7 +375,7 @@ const legacyIcon = `<?xml version="1.0" encoding="utf-8"?>
     android:viewportHeight="108">
 
     <path
-        android:fillColor="#101722"
+        android:fillColor="#263B63"
         android:pathData="M0,0 H108 V108 H0 Z" />
 
     ${orbit}
