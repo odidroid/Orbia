@@ -59,7 +59,6 @@ function shiftDate(dateString, amount) {
 }
 
 let selectedDate = getLocalDate();
-let weekOffset = 0;
 
 function loadLocalArray(key, label) {
     try {
