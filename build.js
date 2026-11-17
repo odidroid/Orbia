@@ -40,16 +40,30 @@ async function build() {
     let html = fs.readFileSync(indexPath, "utf8");
 
     // =====================================
-    // ADICIONAR CSS DA TELA DE INICIALIZAÇÃO
+    // ATIVAR BLOQUEIO ANTES DA INTERFACE
     // =====================================
 
-    if (!html.includes('href="splash.css"')) {
+    const startupScript =
+        '<script>document.documentElement.classList.add("orbia-loading");</script>';
+
+    if (!html.includes('classList.add("orbia-loading")')) {
         if (!html.match(/<\/head>/i)) {
             throw new Error(
                 "Não foi encontrada a tag de fechamento head."
             );
         }
 
+        html = html.replace(
+            /<\/head>/i,
+            `    ${startupScript}\n</head>`
+        );
+    }
+
+    // =====================================
+    // ADICIONAR CSS DA INICIALIZAÇÃO
+    // =====================================
+
+    if (!html.includes('href="splash.css"')) {
         html = html.replace(
             /<\/head>/i,
             '    <link rel="stylesheet" href="splash.css">\n</head>'
@@ -114,7 +128,7 @@ async function build() {
     });
 
     console.log(
-        "ORBIA preparado com animação de inicialização!"
+        "ORBIA preparado com inicialização prioritária!"
     );
 }
 
