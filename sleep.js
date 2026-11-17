@@ -373,6 +373,7 @@
                 STORAGE_KEY,
                 JSON.stringify(sleepRecords)
             );
+            window.dispatchEvent(new Event("orbia:data-changed"));
 
             return true;
 
