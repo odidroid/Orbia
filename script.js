@@ -61,9 +61,25 @@ function shiftDate(dateString, amount) {
 let selectedDate = getLocalDate();
 let weekOffset = 0;
 
-let activities = JSON.parse(
-    localStorage.getItem("orbia-activities") || "[]"
-);
+function loadLocalArray(key, label) {
+    try {
+        const raw = localStorage.getItem(key);
+        const value = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(value)) throw new Error("Formato inválido");
+        return value;
+    } catch (error) {
+        console.error("Não foi possível carregar " + label + ":", error);
+        try {
+            const raw = localStorage.getItem(key);
+            if (raw) localStorage.setItem("orbia-recovery-" + key, raw);
+        } catch (recoveryError) {
+            console.error("Não foi possível preservar os dados inválidos:", recoveryError);
+        }
+        return [];
+    }
+}
+
+let activities = loadLocalArray("orbia-activities", "atividades");
 
 activities.forEach(activity => {
     if (!activity.date) {
@@ -86,9 +102,7 @@ saveActivities();
 // DADOS DOS HÁBITOS
 // =====================================
 
-let habits = JSON.parse(
-    localStorage.getItem("orbia-habits") || "[]"
-);
+let habits = loadLocalArray("orbia-habits", "hábitos");
 
 function getDaysForFrequency(frequency) {
     if (frequency === "weekdays") {
