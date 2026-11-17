@@ -14,6 +14,7 @@ async function build() {
         "settings.js",
         "goals.js",
         "sleep.js",
+        "finance.js",
         "splash.css",
         "splash.js"
     ];
