@@ -1,9 +1,15 @@
-
 {
   "appId": "com.orbia.app",
   "appName": "ORBIA",
   "webDir": "www",
   "server": {
     "androidScheme": "https"
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "sound": "orbia_orbita.wav",
+      "smallIcon": "ic_stat_orbia",
+      "iconColor": "#45D6B1"
+    }
   }
 }

@@ -59,7 +59,6 @@ function shiftDate(dateString, amount) {
 }
 
 let selectedDate = getLocalDate();
-let weekOffset = 0;
 
 function loadLocalArray(key, label) {
     try {
@@ -218,13 +217,13 @@ themeButton.addEventListener("click", () => {
 function renderWeek() {
     weekDays.innerHTML = "";
 
-    const today = new Date();
-    today.setDate(today.getDate() + weekOffset * 7);
+    // A semana acompanha a data selecionada, permitindo
+    // navegar livremente pelo histórico sem perder o dia em foco.
+    const anchor = new Date(selectedDate + "T12:00:00");
+    const monday = new Date(anchor);
+    const dayOfWeek = (anchor.getDay() + 6) % 7;
 
-    const monday = new Date(today);
-    const dayOfWeek = (today.getDay() + 6) % 7;
-
-    monday.setDate(today.getDate() - dayOfWeek);
+    monday.setDate(anchor.getDate() - dayOfWeek);
 
     const sunday = new Date(monday);
     sunday.setDate(monday.getDate() + 6);
@@ -267,13 +266,15 @@ function renderWeek() {
 }
 
 previousWeek.addEventListener("click", () => {
-    weekOffset--;
+    selectedDate = shiftDate(selectedDate, -7);
     renderWeek();
+    renderActivities();
 });
 
 nextWeek.addEventListener("click", () => {
-    weekOffset++;
+    selectedDate = shiftDate(selectedDate, 7);
     renderWeek();
+    renderActivities();
 });
 
 

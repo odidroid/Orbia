@@ -4,7 +4,7 @@ import { LocalNotifications } from "@capacitor/local-notifications";
 (() => {
     "use strict";
 
-    const CHANNEL_ID = "orbia-reminders";
+    const CHANNEL_ID = "orbia-reminders-v2";
     const TEST_ID = 906202611;
     const SLEEP_KEY = "orbia-sleep-reminders";
     const isNative = Capacitor.isNativePlatform();
@@ -51,6 +51,7 @@ import { LocalNotifications } from "@capacitor/local-notifications";
                 id: CHANNEL_ID,
                 name: "Lembretes ORBIA",
                 description: "Lembretes de agenda, hábitos, metas e sono",
+                sound: "orbia_orbita.wav",
                 importance: 5,
                 vibration: true
             });
@@ -69,6 +70,15 @@ import { LocalNotifications } from "@capacitor/local-notifications";
         const result = await LocalNotifications.requestPermissions();
         if (result.display === "granted") {
             await createChannel();
+            try {
+                const exact = await LocalNotifications.checkExactNotificationSetting();
+                if (exact.exact_alarm !== "granted") {
+                    showStatus("Para receber lembretes no horário certo, autorize Alarmes e lembretes na próxima tela do Android.");
+                    await LocalNotifications.changeExactNotificationSetting();
+                }
+            } catch (exactError) {
+                console.warn("Não foi possível verificar alarmes exatos:", exactError);
+            }
             await syncAll();
         }
         return result;
@@ -83,6 +93,7 @@ import { LocalNotifications } from "@capacitor/local-notifications";
             body,
             channelId: CHANNEL_ID,
             schedule: { at: date, allowWhileIdle: true },
+            isExactNotification: true,
             extra: { category, orbiaManaged: true, orbiaKey: key }
         });
     }
@@ -101,7 +112,7 @@ import { LocalNotifications } from "@capacitor/local-notifications";
             addNotification(queue, "activity:" + item.id, "Sua atividade está começando", item.name || "Confira sua agenda no ORBIA.", new Date(at.getTime() - 5 * 60000), "activity");
         });
 
-        for (let offset = 0; offset < 30; offset++) {
+        for (let offset = 0; offset < 7; offset++) {
             const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset, 12);
             const date = localDate(day);
             const weekday = day.getDay();
@@ -143,7 +154,28 @@ import { LocalNotifications } from "@capacitor/local-notifications";
         try {
             const permission = await checkPermissions();
             if (permission.display !== "granted") return { scheduled: 0, permission: permission.display };
+            let exactAlarm = "granted";
+            try {
+                const exact = await LocalNotifications.checkExactNotificationSetting();
+                exactAlarm = exact.exact_alarm || "granted";
+            } catch (exactError) {
+                console.warn("Não foi possível verificar alarmes exatos:", exactError);
+            }
             await createChannel();
+
+            if (exactAlarm !== "granted") {
+                // Remove a fila antiga de lembretes de sono, que podia conter
+                // até 60 avisos da janela anterior de 30 dias. Preserva os
+                // demais lembretes enquanto a permissão especial estiver bloqueada.
+                const pendingWithoutExact = await LocalNotifications.getPending();
+                const oldSleepReminders = (pendingWithoutExact.notifications || [])
+                    .filter(item => item.extra && item.extra.orbiaManaged && item.extra.category === "sleep")
+                    .map(item => ({ id: item.id }));
+                if (oldSleepReminders.length) {
+                    await LocalNotifications.cancel({ notifications: oldSleepReminders });
+                }
+                return { scheduled: 0, permission: "granted", exactAlarm };
+            }
 
             const pending = await LocalNotifications.getPending();
             const managed = (pending.notifications || [])
@@ -158,7 +190,7 @@ import { LocalNotifications } from "@capacitor/local-notifications";
             if (queue.length) {
                 await LocalNotifications.schedule({ notifications: queue });
             }
-            return { scheduled: queue.length };
+            return { scheduled: queue.length, exactAlarm };
         } finally {
             syncing = false;
         }
@@ -169,7 +201,7 @@ import { LocalNotifications } from "@capacitor/local-notifications";
         syncTimer = setTimeout(() => {
             syncAll().then(result => {
                 if (result.permission === "granted" || result.scheduled) {
-                    showStatus(result.scheduled + " lembretes programados.");
+                    showStatus(result.scheduled + " lembretes programados." + (result.exactAlarm === "denied" ? " Atenção: permita Alarmes e lembretes para maior precisão." : ""));
                 }
             }).catch(error => showStatus("Falha ao atualizar lembretes: " + error.message, true));
         }, 450);
@@ -186,8 +218,10 @@ import { LocalNotifications } from "@capacitor/local-notifications";
                 id: TEST_ID,
                 title: "ORBIA está funcionando! 🔔",
                 body: "Sua central de lembretes está ativa.",
+                sound: "orbia_orbita.wav",
                 channelId: CHANNEL_ID,
                 schedule: { at: new Date(Date.now() + 15000), allowWhileIdle: true },
+                isExactNotification: true,
                 extra: { category: "test" }
             }]
         });
@@ -227,7 +261,8 @@ import { LocalNotifications } from "@capacitor/local-notifications";
 
     function mountInterface() {
         const settings = document.getElementById("settings-section");
-        if (!settings || document.getElementById("orbia-notification-card")) return;
+        const sleepSection = document.getElementById("sleep-section");
+        if (!settings || !sleepSection || document.getElementById("orbia-notification-card")) return;
 
         const saved = sleepSettings();
         const card = document.createElement("section");
@@ -237,30 +272,57 @@ import { LocalNotifications } from "@capacitor/local-notifications";
         card.innerHTML = `
             <h2>🔔 Lembretes inteligentes</h2>
             <p class="settings-description">O ORBIA programa lembretes para atividades, hábitos e prazos de metas. Os avisos são processados pelo Android e podem chegar mesmo com o aplicativo fechado.</p>
-            <button type="button" id="orbia-enable-notifications" class="settings-button">Ativar notificações</button>
+            <button type="button" id="orbia-enable-notifications" class="settings-button">Ativar notificações e alarmes</button>
+            <p class="settings-description">Para lembretes fora do aplicativo, o Android precisa permitir notificações e Alarmes e lembretes. Em celulares Redmi/Xiaomi, deixe a bateria do ORBIA como Sem restrições e permita a Inicialização automática.</p>
             <button type="button" id="orbia-sync-notifications" class="settings-button secondary">Atualizar lembretes</button>
-            <div class="settings-divider"></div>
-            <strong>Rotina de sono</strong>
-            <p class="settings-description">Opcional: receba um aviso no horário de dormir e outro no horário de acordar.</p>
-            <label class="settings-description" for="orbia-sleep-bedtime">Lembrete para dormir</label>
-            <input id="orbia-sleep-bedtime" type="time" value="${saved.bedtime}" style="width:100%;min-height:42px;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--background);color:var(--text)">
-            <label class="settings-description" for="orbia-sleep-waketime">Lembrete para acordar</label>
-            <input id="orbia-sleep-waketime" type="time" value="${saved.waketime}" style="width:100%;min-height:42px;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--background);color:var(--text)">
-            <label style="display:flex;align-items:center;gap:9px;margin-top:12px;font-size:13px"><input id="orbia-sleep-reminders-enabled" type="checkbox" ${saved.enabled ? "checked" : ""}> Ativar lembretes de sono</label>
-            <button type="button" id="orbia-save-sleep-reminders" class="settings-button secondary">Salvar horários de sono</button>
             <button type="button" id="orbia-test-notification" class="settings-button secondary">Enviar notificação de teste</button>
             <p id="orbia-notification-status" class="settings-status" aria-live="polite">Verificando notificações...</p>
         `;
         settings.appendChild(card);
+
+        const sleepCard = document.createElement("section");
+        sleepCard.id = "orbia-sleep-routine-card";
+        sleepCard.className = "sleep-card";
+        sleepCard.style.marginTop = "14px";
+        sleepCard.innerHTML = `
+            <h2>🌙 Minha rotina de sono</h2>
+            <p class="settings-description">Defina seus horários para receber um lembrete de dormir e outro de acordar. Os avisos são programados para os próximos 7 dias.</p>
+            <label class="settings-description" for="orbia-sleep-bedtime">Horário de dormir</label>
+            <input id="orbia-sleep-bedtime" type="time" value="${saved.bedtime}" style="width:100%;min-height:42px;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--background);color:var(--text)">
+            <label class="settings-description" for="orbia-sleep-waketime">Horário de acordar</label>
+            <input id="orbia-sleep-waketime" type="time" value="${saved.waketime}" style="width:100%;min-height:42px;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--background);color:var(--text)">
+            <label style="display:flex;align-items:center;gap:9px;margin-top:12px;font-size:13px"><input id="orbia-sleep-reminders-enabled" type="checkbox" ${saved.enabled ? "checked" : ""}> Ativar lembretes de sono</label>
+            <button type="button" id="orbia-save-sleep-reminders" class="settings-button secondary">Salvar rotina de sono</button>
+        `;
+        sleepSection.appendChild(sleepCard);
 
         const enable = document.getElementById("orbia-enable-notifications");
         const sync = document.getElementById("orbia-sync-notifications");
         const test = document.getElementById("orbia-test-notification");
         const saveSleep = document.getElementById("orbia-save-sleep-reminders");
 
+        saveSleep.addEventListener("click", async () => {
+            const settings = {
+                enabled: document.getElementById("orbia-sleep-reminders-enabled").checked,
+                bedtime: document.getElementById("orbia-sleep-bedtime").value || "22:00",
+                waketime: document.getElementById("orbia-sleep-waketime").value || "07:00"
+            };
+            localStorage.setItem(SLEEP_KEY, JSON.stringify(settings));
+            if (!isNative) {
+                showStatus("Rotina salva neste dispositivo. As notificações funcionam na versão Android.", false);
+                return;
+            }
+            try {
+                const result = await syncAll();
+                showStatus("Rotina de sono salva. " + result.scheduled + " lembretes programados.");
+            } catch (error) {
+                showStatus("Horários salvos, mas não foi possível atualizar: " + error.message, true);
+            }
+        });
+
         if (!isNative) {
             showStatus("As notificações precisam da versão Android instalada.", true);
-            [enable, sync, test, saveSleep].forEach(button => button.disabled = true);
+            [enable, sync, test].forEach(button => button.disabled = true);
             return;
         }
 
@@ -268,7 +330,11 @@ import { LocalNotifications } from "@capacitor/local-notifications";
             enable.disabled = true;
             try {
                 const result = await requestPermission();
-                if (result.display === "granted") showStatus("Permissão concedida. Lembretes atualizados.");
+                if (result.display === "granted") {
+                    const exact = await LocalNotifications.checkExactNotificationSetting();
+                    if (exact.exact_alarm === "granted") showStatus("Permissões concedidas. Lembretes atualizados.");
+                    else showStatus("As notificações estão autorizadas, mas Alarmes e lembretes ainda estão desativados. Ative essa permissão nas configurações do Android.", true);
+                }
                 else showStatus("Permissão não concedida. Verifique as configurações do Android.", true);
             } catch (error) {
                 showStatus(error.message, true);
@@ -283,26 +349,11 @@ import { LocalNotifications } from "@capacitor/local-notifications";
                 const result = await syncAll();
                 showStatus(result.permission && result.permission !== "granted"
                     ? "Permissão pendente. Ative as notificações para programar lembretes."
-                    : result.scheduled + " lembretes programados.");
+                    : result.scheduled + " lembretes programados." + (result.exactAlarm === "denied" ? " Ative Alarmes e lembretes no Android." : ""));
             } catch (error) {
                 showStatus("Não foi possível atualizar: " + error.message, true);
             } finally {
                 sync.disabled = false;
-            }
-        });
-
-        saveSleep.addEventListener("click", async () => {
-            const settings = {
-                enabled: document.getElementById("orbia-sleep-reminders-enabled").checked,
-                bedtime: document.getElementById("orbia-sleep-bedtime").value || "22:00",
-                waketime: document.getElementById("orbia-sleep-waketime").value || "07:00"
-            };
-            localStorage.setItem(SLEEP_KEY, JSON.stringify(settings));
-            try {
-                const result = await syncAll();
-                showStatus("Rotina de sono salva. " + result.scheduled + " lembretes programados.");
-            } catch (error) {
-                showStatus("Horários salvos, mas não foi possível atualizar: " + error.message, true);
             }
         });
 
@@ -320,7 +371,10 @@ import { LocalNotifications } from "@capacitor/local-notifications";
 
         checkPermissions().then(result => {
             if (result.display === "granted") {
-                syncAll().then(data => showStatus(data.scheduled + " lembretes programados.")).catch(error => showStatus(error.message, true));
+                syncAll().then(data => {
+                    if (data.exactAlarm === "denied") showStatus("Permissão de notificações concedida. Falta permitir Alarmes e lembretes nas configurações do Android.", true);
+                    else showStatus(data.scheduled + " lembretes programados.");
+                }).catch(error => showStatus(error.message, true));
             } else {
                 showStatus("Ative as notificações para receber lembretes de agenda e hábitos.");
             }
