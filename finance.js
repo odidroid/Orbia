@@ -8,7 +8,7 @@ let records=read(RECORDS_KEY,[]), budgets=read(BUDGETS_KEY,{});
 if(!Array.isArray(records))records=[];
 if(!budgets||typeof budgets!=="object"||Array.isArray(budgets))budgets={};
 records=records.filter(x=>x&&x.id!==undefined&&["income","expense"].includes(x.type)&&Number(x.amount)>0&&typeof x.date==="string");
-function save(){localStorage.setItem(RECORDS_KEY,JSON.stringify(records));localStorage.setItem(BUDGETS_KEY,JSON.stringify(budgets))}
+function save(){localStorage.setItem(RECORDS_KEY,JSON.stringify(records));localStorage.setItem(BUDGETS_KEY,JSON.stringify(budgets));window.dispatchEvent(new Event("orbia:data-changed"))}
 function today(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 function month(){return today().slice(0,7)}
 const section=document.createElement("section");section.id="finance-section";section.style.display="none";
