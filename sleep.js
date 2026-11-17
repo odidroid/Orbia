@@ -714,6 +714,21 @@
        INICIALIZAÇÃO
     ========================================== */
 
+    window.OrbiaSleep = {
+        getBackupData: () => sleepRecords.map(record => ({ ...record })),
+        restoreData: records => {
+            if (!Array.isArray(records)) throw new Error("Histórico de sono inválido.");
+            const normalized = records.filter(record => record && typeof record.id !== "undefined" && typeof record.date === "string" && typeof record.bedtime === "string" && typeof record.waketime === "string").map(record => ({ ...record }));
+            const previous = sleepRecords;
+            sleepRecords = normalized;
+            if (!saveRecords()) {
+                sleepRecords = previous;
+                throw new Error("Não foi possível salvar o histórico de sono restaurado.");
+            }
+            render();
+        }
+    };
+
     loadRecords();
     render();
 
