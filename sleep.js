@@ -350,7 +350,7 @@
             sleepRecords = stored ? JSON.parse(stored) : [];
 
             if (!Array.isArray(sleepRecords)) {
-                sleepRecords = [];
+                throw new Error("Formato inválido no histórico de sono.");
             }
 
             sleepRecords = sleepRecords.filter(record =>
@@ -363,6 +363,12 @@
 
         } catch (error) {
             console.error("Erro ao carregar registros de sono:", error);
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw !== null) localStorage.setItem("orbia-recovery-" + STORAGE_KEY, raw);
+            } catch (recoveryError) {
+                console.error("Não foi possível preservar o histórico inválido:", recoveryError);
+            }
             sleepRecords = [];
         }
     }
@@ -718,7 +724,13 @@
         getBackupData: () => sleepRecords.map(record => ({ ...record })),
         restoreData: records => {
             if (!Array.isArray(records)) throw new Error("Histórico de sono inválido.");
-            const normalized = records.filter(record => record && typeof record.id !== "undefined" && typeof record.date === "string" && typeof record.bedtime === "string" && typeof record.waketime === "string").map(record => ({ ...record }));
+            const validTime = value => typeof value === "string" && /^([01]\\d|2[0-3]):[0-5]\\d$/.test(value);
+            const validRecords = records.every(record => record && typeof record === "object" &&
+                typeof record.id !== "undefined" && typeof record.date === "string" &&
+                /^\\d{4}-\\d{2}-\\d{2}$/.test(record.date) &&
+                validTime(record.bedtime) && validTime(record.waketime));
+            if (!validRecords) throw new Error("O backup contém registros de sono inválidos.");
+            const normalized = records.map(record => ({ ...record }));
             const previous = sleepRecords;
             sleepRecords = normalized;
             if (!saveRecords()) {
