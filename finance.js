@@ -3,7 +3,7 @@
 "use strict";
 const RECORDS_KEY="orbia-finance-records", BUDGETS_KEY="orbia-finance-budgets";
 const money=new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"});
-function read(key,fallback){try{const v=JSON.parse(localStorage.getItem(key)||"null");return v??fallback}catch(e){return fallback}}
+function read(key,fallback){try{const raw=localStorage.getItem(key);const v=JSON.parse(raw||"null");return v??fallback}catch(e){try{const raw=localStorage.getItem(key);if(raw!==null)localStorage.setItem("orbia-recovery-"+key,raw)}catch(recoveryError){console.error("Não foi possível preservar dados financeiros inválidos:",recoveryError)}console.error("Dados financeiros inválidos em "+key,e);return fallback}}
 let records=read(RECORDS_KEY,[]), budgets=read(BUDGETS_KEY,{});
 if(!Array.isArray(records))records=[];
 if(!budgets||typeof budgets!=="object"||Array.isArray(budgets))budgets={};
@@ -48,8 +48,23 @@ form.addEventListener("submit",e=>{e.preventDefault();const description=document
 document.getElementById("finance-budget-form").addEventListener("submit",e=>{e.preventDefault();const amount=Number(document.getElementById("finance-budget").value);if(!Number.isFinite(amount)||amount<0)return;budgets[monthInput.value]=amount;save();render();document.getElementById("finance-feedback").textContent="Orçamento atualizado."});
 monthInput.addEventListener("change",render);
 const previousShowPage=window.showPage||showPage;
-window.showPage=function(page){if(page==="finance"){document.querySelectorAll("main > section").forEach(x=>x.style.display="none");const goals=document.getElementById("goals-section");if(goals)goals.style.display="none";section.style.display="";document.querySelectorAll(".bottom-navigation button").forEach(b=>b.classList.toggle("active",b.id==="nav-finance"));document.getElementById("add-activity").style.display="none";document.getElementById("add-habit").style.display="none";window.scrollTo({top:0,behavior:"smooth"});render();return}previousShowPage(page);section.style.display="none"};
-document.getElementById("nav-finance").addEventListener("click",()=>window.showPage("finance"));
+function showFinanceAwarePage(page){
+if(page==="finance"){
+document.querySelectorAll("main > section").forEach(x=>x.style.display="none");
+const goals=document.getElementById("goals-section");if(goals)goals.style.display="none";
+section.style.display="";
+document.querySelectorAll(".bottom-navigation button").forEach(b=>b.classList.toggle("active",b.id==="nav-finance"));
+document.getElementById("add-activity").style.display="none";
+document.getElementById("add-habit").style.display="none";
+window.scrollTo({top:0,behavior:"smooth"});render();return;
+}
+section.style.display="none";
+previousShowPage(page);
+const financeButton=document.getElementById("nav-finance");if(financeButton)financeButton.classList.remove("active");
+}
+window.showPage=showFinanceAwarePage;
+showPage=showFinanceAwarePage;
+document.getElementById("nav-finance").addEventListener("click",()=>showFinanceAwarePage("finance"));
 window.OrbiaFinance={getBackupData:()=>({records,budgets}),restoreData:data=>{records=Array.isArray(data?.records)?data.records:[];budgets=data?.budgets&&typeof data.budgets==="object"&&!Array.isArray(data.budgets)?data.budgets:{};save();render()}};
 save();render();
 })();
