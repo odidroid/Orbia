@@ -35,26 +35,48 @@ async function build() {
 
     let html = fs.readFileSync(indexPath, "utf8");
 
-    if (!html.includes('src="notifications.js"')) {
-        if (!html.match(/<\/body>/i)) {
-            throw new Error("Não foi encontrada a tag de fechamento body.");
-        }
+    const scripts = [
+        "notifications.js",
+        "backup-exporter.js"
+    ];
 
-        html = html.replace(
-            /<\/body>/i,
-            '    <script src="notifications.js"></script>\n</body>'
-        );
+    for (const script of scripts) {
+        if (!html.includes(`src="${script}"`)) {
+            if (!html.match(/<\/body>/i)) {
+                throw new Error(
+                    "Não foi encontrada a tag de fechamento body."
+                );
+            }
+
+            html = html.replace(
+                /<\/body>/i,
+                `    <script src="${script}"></script>\n</body>`
+            );
+        }
     }
 
     fs.writeFileSync(indexPath, html);
 
     await esbuild.build({
-        entryPoints: [path.join(source, "notifications.js")],
+        entryPoints: [
+            path.join(source, "notifications.js")
+        ],
         bundle: true,
         platform: "browser",
         format: "iife",
         target: ["es2022"],
         outfile: path.join(output, "notifications.js")
+    });
+
+    await esbuild.build({
+        entryPoints: [
+            path.join(source, "backup-exporter.js")
+        ],
+        bundle: true,
+        platform: "browser",
+        format: "iife",
+        target: ["es2022"],
+        outfile: path.join(output, "backup-exporter.js")
     });
 
     console.log("ORBIA preparado com sucesso!");
