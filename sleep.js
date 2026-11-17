@@ -353,13 +353,21 @@
                 throw new Error("Formato inválido no histórico de sono.");
             }
 
-            sleepRecords = sleepRecords.filter(record =>
-                record &&
+            const validRecords = sleepRecords.filter(record =>
+                record && typeof record === "object" &&
                 typeof record.id !== "undefined" &&
                 typeof record.date === "string" &&
                 typeof record.bedtime === "string" &&
                 typeof record.waketime === "string"
             );
+            if (validRecords.length !== sleepRecords.length) {
+                try {
+                    if (stored !== null) localStorage.setItem("orbia-recovery-" + STORAGE_KEY, stored);
+                } catch (recoveryError) {
+                    console.error("Não foi possível preservar registros incompletos:", recoveryError);
+                }
+            }
+            sleepRecords = validRecords;
 
         } catch (error) {
             console.error("Erro ao carregar registros de sono:", error);
