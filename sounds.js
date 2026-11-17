@@ -91,10 +91,14 @@
             button.addEventListener("click", playTap, { passive: true });
         });
 
-        document.addEventListener("pointerdown", () => {
+        document.addEventListener("pointerdown", async () => {
             const ctx = audioContext();
-            if (pendingStartup && ctx && ctx.state === "running") {
-                playStartup();
+            if (!ctx) return;
+            try {
+                if (ctx.state === "suspended") await ctx.resume();
+                if (pendingStartup && ctx.state === "running") playStartup();
+            } catch (error) {
+                console.warn("Áudio ainda não está disponível:", error);
             }
         }, { once: true, passive: true });
 
