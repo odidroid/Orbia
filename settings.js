@@ -44,7 +44,11 @@ function generateBackupContent() {
         activities: activities,
         habits: habits,
         goals: goals,
-        finance: window.OrbiaFinance ? window.OrbiaFinance.getBackupData() : { records: [], budgets: {} }
+        finance: window.OrbiaFinance ? window.OrbiaFinance.getBackupData() : { records: [], budgets: {} },
+        sleep: window.OrbiaSleep ? window.OrbiaSleep.getBackupData() : [],
+        notificationSettings: window.OrbiaNotifications && window.OrbiaNotifications.getSettings
+            ? window.OrbiaNotifications.getSettings()
+            : { enabled: false, bedtime: "22:00", waketime: "07:00" }
     };
 
     return JSON.stringify(backup, null, 2);
@@ -368,6 +372,15 @@ function validateBackup(data) {
 
     if (data.finance !== undefined && (!data.finance || typeof data.finance !== "object" || !Array.isArray(data.finance.records) || !data.finance.budgets || typeof data.finance.budgets !== "object" || Array.isArray(data.finance.budgets))) return false;
 
+    if (data.sleep !== undefined && !Array.isArray(data.sleep)) return false;
+    if (data.notificationSettings !== undefined) {
+        const settings = data.notificationSettings;
+        if (!settings || typeof settings !== "object" || typeof settings.enabled !== "boolean" ||
+            typeof settings.bedtime !== "string" || typeof settings.waketime !== "string" ||
+            !/^([01]\d|2[0-3]):[0-5]\d$/.test(settings.bedtime) ||
+            !/^([01]\d|2[0-3]):[0-5]\d$/.test(settings.waketime)) return false;
+    }
+
     const validGoals = (data.goals || []).every(goal => {
         return (
             goal &&
@@ -549,8 +562,8 @@ importBackupFile.addEventListener("change", async event => {
         }
 
         const confirmed = confirm(
-            "Importar este backup substituirá suas atividades, " +
-            "hábitos, metas e dados financeiros atuais.\n\n" +
+            "Importar este backup substituirá os dados das categorias presentes nele. " +
+            "Categorias ausentes em backups antigos serão preservadas.\n\n" +
             "Deseja continuar?"
         );
 
@@ -567,14 +580,24 @@ importBackupFile.addEventListener("change", async event => {
         habits = normalizeImportedHabits(backup.habits);
 
         // Backups antigos não possuem metas.
-        goals = normalizeImportedGoals(backup.goals || []);
+        if (Array.isArray(backup.goals)) {
+            goals = normalizeImportedGoals(backup.goals);
+            saveGoals();
+        }
 
         saveActivities();
         saveHabits();
-        saveGoals();
 
         if (window.OrbiaFinance && backup.finance) {
             window.OrbiaFinance.restoreData(backup.finance);
+        }
+
+        if (window.OrbiaSleep && Array.isArray(backup.sleep)) {
+            window.OrbiaSleep.restoreData(backup.sleep);
+        }
+
+        if (window.OrbiaNotifications && backup.notificationSettings && window.OrbiaNotifications.restoreSettings) {
+            window.OrbiaNotifications.restoreSettings(backup.notificationSettings);
         }
 
         renderActivities();
@@ -583,7 +606,7 @@ importBackupFile.addEventListener("change", async event => {
         renderGoals();
 
         backupStatus.textContent =
-            "Backup importado com sucesso! Atividades, hábitos e metas restaurados.";
+            "Backup importado com sucesso! Dados disponíveis foram restaurados.";
 
     } catch (error) {
         console.error("Erro ao importar backup:", error);

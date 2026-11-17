@@ -199,6 +199,18 @@ import { LocalNotifications } from "@capacitor/local-notifications";
         requestPermission,
         scheduleTest,
         syncAll,
+        getSettings: sleepSettings,
+        restoreSettings: settings => {
+            if (!settings || typeof settings.enabled !== "boolean" || !/^([01]\d|2[0-3]):[0-5]\d$/.test(settings.bedtime || "") || !/^([01]\d|2[0-3]):[0-5]\d$/.test(settings.waketime || "")) throw new Error("Preferências de lembretes inválidas.");
+            localStorage.setItem(SLEEP_KEY, JSON.stringify({ enabled: settings.enabled, bedtime: settings.bedtime, waketime: settings.waketime }));
+            const bedtimeInput = document.getElementById("orbia-sleep-bedtime");
+            const waketimeInput = document.getElementById("orbia-sleep-waketime");
+            const enabledInput = document.getElementById("orbia-sleep-reminders-enabled");
+            if (bedtimeInput) bedtimeInput.value = settings.bedtime;
+            if (waketimeInput) waketimeInput.value = settings.waketime;
+            if (enabledInput) enabledInput.checked = settings.enabled;
+            queueSync();
+        },
         getPending: async () => {
             if (!isNative) return [];
             const result = await LocalNotifications.getPending();
