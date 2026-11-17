@@ -13,7 +13,9 @@ async function build() {
         "script.js",
         "settings.js",
         "goals.js",
-        "sleep.js"
+        "sleep.js",
+        "splash.css",
+        "splash.js"
     ];
 
     fs.mkdirSync(output, { recursive: true });
@@ -22,7 +24,9 @@ async function build() {
         const original = path.join(source, file);
 
         if (!fs.existsSync(original)) {
-            throw new Error(`Arquivo obrigatório não encontrado: ${file}`);
+            throw new Error(
+                `Arquivo obrigatório não encontrado: ${file}`
+            );
         }
 
         fs.copyFileSync(
@@ -35,9 +39,31 @@ async function build() {
 
     let html = fs.readFileSync(indexPath, "utf8");
 
+    // =====================================
+    // ADICIONAR CSS DA TELA DE INICIALIZAÇÃO
+    // =====================================
+
+    if (!html.includes('href="splash.css"')) {
+        if (!html.match(/<\/head>/i)) {
+            throw new Error(
+                "Não foi encontrada a tag de fechamento head."
+            );
+        }
+
+        html = html.replace(
+            /<\/head>/i,
+            '    <link rel="stylesheet" href="splash.css">\n</head>'
+        );
+    }
+
+    // =====================================
+    // ADICIONAR SCRIPTS
+    // =====================================
+
     const scripts = [
         "notifications.js",
-        "backup-exporter.js"
+        "backup-exporter.js",
+        "splash.js"
     ];
 
     for (const script of scripts) {
@@ -57,6 +83,10 @@ async function build() {
 
     fs.writeFileSync(indexPath, html);
 
+    // =====================================
+    // COMPILAR NOTIFICAÇÕES
+    // =====================================
+
     await esbuild.build({
         entryPoints: [
             path.join(source, "notifications.js")
@@ -67,6 +97,10 @@ async function build() {
         target: ["es2022"],
         outfile: path.join(output, "notifications.js")
     });
+
+    // =====================================
+    // COMPILAR EXPORTADOR DE BACKUP
+    // =====================================
 
     await esbuild.build({
         entryPoints: [
@@ -79,10 +113,16 @@ async function build() {
         outfile: path.join(output, "backup-exporter.js")
     });
 
-    console.log("ORBIA preparado com sucesso!");
+    console.log(
+        "ORBIA preparado com animação de inicialização!"
+    );
 }
 
 build().catch(error => {
-    console.error("Erro na preparação do ORBIA:", error);
+    console.error(
+        "Erro na preparação do ORBIA:",
+        error
+    );
+
     process.exit(1);
 });
