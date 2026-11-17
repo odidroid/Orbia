@@ -69,6 +69,21 @@ function generateBackupFileName() {
 
 
 // =====================================
+// ABRIR ALTERNATIVA DE CÓPIA MANUAL
+// =====================================
+
+function showManualBackup(content) {
+    backupJsonContent.value = content;
+    backupCopyStatus.textContent = "";
+    backupModal.classList.add("active");
+    backupJsonContent.scrollTop = 0;
+
+    backupStatus.textContent =
+        "Não foi possível salvar automaticamente. Você pode copiar o backup.";
+}
+
+
+// =====================================
 // EXPORTAR ARQUIVO
 // =====================================
 
@@ -127,14 +142,17 @@ async function saveBackupFile(content) {
             }
 
         } catch (error) {
-            if (error.name === "AbortError") {
-                return "cancelled";
-            }
+            // Não interpretar automaticamente AbortError como cancelamento.
+            // Alguns WebViews Android retornam esse erro sem abrir o compartilhamento.
 
             console.warn(
                 "Compartilhamento nativo indisponível:",
                 error
             );
+
+            if (error.name === "AbortError") {
+                return "fallback";
+            }
         }
     }
 
@@ -160,14 +178,14 @@ async function saveBackupFile(content) {
             return "saved";
 
         } catch (error) {
-            if (error.name === "AbortError") {
-                return "cancelled";
-            }
-
             console.warn(
                 "Salvamento nativo indisponível:",
                 error
             );
+
+            if (error.name === "AbortError") {
+                return "fallback";
+            }
         }
     }
 
@@ -200,7 +218,9 @@ async function saveBackupFile(content) {
             URL.revokeObjectURL(downloadUrl);
         }
 
-        throw error;
+        console.error("Falha no download:", error);
+
+        return "fallback";
     }
 }
 
@@ -240,10 +260,8 @@ async function exportBackup() {
             return;
         }
 
-        if (result === "cancelled") {
-            backupStatus.textContent =
-                "Exportação cancelada.";
-
+        if (result === "fallback") {
+            showManualBackup(content);
             return;
         }
 
@@ -252,21 +270,7 @@ async function exportBackup() {
 
         backupStatus.textContent =
             "Erro na exportação: " + error.message;
-
-        return;
     }
-
-    // ALTERNATIVA: CÓPIA MANUAL
-
-    const content = generateBackupContent();
-
-    backupJsonContent.value = content;
-    backupCopyStatus.textContent = "";
-    backupModal.classList.add("active");
-    backupJsonContent.scrollTop = 0;
-
-    backupStatus.textContent =
-        "Não foi possível salvar automaticamente. Você pode copiar o backup.";
 }
 
 exportBackupButton.addEventListener("click", exportBackup);
