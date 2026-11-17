@@ -112,7 +112,7 @@ import { LocalNotifications } from "@capacitor/local-notifications";
             addNotification(queue, "activity:" + item.id, "Sua atividade está começando", item.name || "Confira sua agenda no ORBIA.", new Date(at.getTime() - 5 * 60000), "activity");
         });
 
-        for (let offset = 0; offset < 30; offset++) {
+        for (let offset = 0; offset < 7; offset++) {
             const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset, 12);
             const date = localDate(day);
             const weekday = day.getDay();
@@ -251,7 +251,8 @@ import { LocalNotifications } from "@capacitor/local-notifications";
 
     function mountInterface() {
         const settings = document.getElementById("settings-section");
-        if (!settings || document.getElementById("orbia-notification-card")) return;
+        const sleepSection = document.getElementById("sleep-section");
+        if (!settings || !sleepSection || document.getElementById("orbia-notification-card")) return;
 
         const saved = sleepSettings();
         const card = document.createElement("section");
@@ -264,28 +265,54 @@ import { LocalNotifications } from "@capacitor/local-notifications";
             <button type="button" id="orbia-enable-notifications" class="settings-button">Ativar notificações e alarmes</button>
             <p class="settings-description">Para lembretes fora do aplicativo, o Android precisa permitir notificações e Alarmes e lembretes. Em celulares Redmi/Xiaomi, deixe a bateria do ORBIA como Sem restrições e permita a Inicialização automática.</p>
             <button type="button" id="orbia-sync-notifications" class="settings-button secondary">Atualizar lembretes</button>
-            <div class="settings-divider"></div>
-            <strong>Rotina de sono</strong>
-            <p class="settings-description">Opcional: receba um aviso no horário de dormir e outro no horário de acordar.</p>
-            <label class="settings-description" for="orbia-sleep-bedtime">Lembrete para dormir</label>
-            <input id="orbia-sleep-bedtime" type="time" value="${saved.bedtime}" style="width:100%;min-height:42px;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--background);color:var(--text)">
-            <label class="settings-description" for="orbia-sleep-waketime">Lembrete para acordar</label>
-            <input id="orbia-sleep-waketime" type="time" value="${saved.waketime}" style="width:100%;min-height:42px;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--background);color:var(--text)">
-            <label style="display:flex;align-items:center;gap:9px;margin-top:12px;font-size:13px"><input id="orbia-sleep-reminders-enabled" type="checkbox" ${saved.enabled ? "checked" : ""}> Ativar lembretes de sono</label>
-            <button type="button" id="orbia-save-sleep-reminders" class="settings-button secondary">Salvar horários de sono</button>
             <button type="button" id="orbia-test-notification" class="settings-button secondary">Enviar notificação de teste</button>
             <p id="orbia-notification-status" class="settings-status" aria-live="polite">Verificando notificações...</p>
         `;
         settings.appendChild(card);
+
+        const sleepCard = document.createElement("section");
+        sleepCard.id = "orbia-sleep-routine-card";
+        sleepCard.className = "sleep-card";
+        sleepCard.style.marginTop = "14px";
+        sleepCard.innerHTML = `
+            <h2>🌙 Minha rotina de sono</h2>
+            <p class="settings-description">Defina seus horários para receber um lembrete de dormir e outro de acordar. Os avisos são programados para os próximos 7 dias.</p>
+            <label class="settings-description" for="orbia-sleep-bedtime">Horário de dormir</label>
+            <input id="orbia-sleep-bedtime" type="time" value="${saved.bedtime}" style="width:100%;min-height:42px;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--background);color:var(--text)">
+            <label class="settings-description" for="orbia-sleep-waketime">Horário de acordar</label>
+            <input id="orbia-sleep-waketime" type="time" value="${saved.waketime}" style="width:100%;min-height:42px;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--background);color:var(--text)">
+            <label style="display:flex;align-items:center;gap:9px;margin-top:12px;font-size:13px"><input id="orbia-sleep-reminders-enabled" type="checkbox" ${saved.enabled ? "checked" : ""}> Ativar lembretes de sono</label>
+            <button type="button" id="orbia-save-sleep-reminders" class="settings-button secondary">Salvar rotina de sono</button>
+        `;
+        sleepSection.appendChild(sleepCard);
 
         const enable = document.getElementById("orbia-enable-notifications");
         const sync = document.getElementById("orbia-sync-notifications");
         const test = document.getElementById("orbia-test-notification");
         const saveSleep = document.getElementById("orbia-save-sleep-reminders");
 
+        saveSleep.addEventListener("click", async () => {
+            const settings = {
+                enabled: document.getElementById("orbia-sleep-reminders-enabled").checked,
+                bedtime: document.getElementById("orbia-sleep-bedtime").value || "22:00",
+                waketime: document.getElementById("orbia-sleep-waketime").value || "07:00"
+            };
+            localStorage.setItem(SLEEP_KEY, JSON.stringify(settings));
+            if (!isNative) {
+                showStatus("Rotina salva neste dispositivo. As notificações funcionam na versão Android.", false);
+                return;
+            }
+            try {
+                const result = await syncAll();
+                showStatus("Rotina de sono salva. " + result.scheduled + " lembretes programados.");
+            } catch (error) {
+                showStatus("Horários salvos, mas não foi possível atualizar: " + error.message, true);
+            }
+        });
+
         if (!isNative) {
             showStatus("As notificações precisam da versão Android instalada.", true);
-            [enable, sync, test, saveSleep].forEach(button => button.disabled = true);
+            [enable, sync, test].forEach(button => button.disabled = true);
             return;
         }
 
@@ -317,21 +344,6 @@ import { LocalNotifications } from "@capacitor/local-notifications";
                 showStatus("Não foi possível atualizar: " + error.message, true);
             } finally {
                 sync.disabled = false;
-            }
-        });
-
-        saveSleep.addEventListener("click", async () => {
-            const settings = {
-                enabled: document.getElementById("orbia-sleep-reminders-enabled").checked,
-                bedtime: document.getElementById("orbia-sleep-bedtime").value || "22:00",
-                waketime: document.getElementById("orbia-sleep-waketime").value || "07:00"
-            };
-            localStorage.setItem(SLEEP_KEY, JSON.stringify(settings));
-            try {
-                const result = await syncAll();
-                showStatus("Rotina de sono salva. " + result.scheduled + " lembretes programados.");
-            } catch (error) {
-                showStatus("Horários salvos, mas não foi possível atualizar: " + error.message, true);
             }
         });
 
