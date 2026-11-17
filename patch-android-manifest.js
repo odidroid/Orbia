@@ -14,19 +14,15 @@ if (!fs.existsSync(manifestPath)) {
 }
 
 // =====================================
-// PERMISSÃO DE NOTIFICAÇÕES
+// PERMISSÃO DE ALARMES EXATOS
 // =====================================
+
+let manifest = fs.readFileSync(manifestPath, "utf8");
 
 const permission =
     '    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />';
 
-let manifest = fs.readFileSync(manifestPath, "utf8");
-
 if (!manifest.includes("android.permission.SCHEDULE_EXACT_ALARM")) {
-    if (!manifest.includes("<application")) {
-        throw new Error("Tag application não encontrada no manifesto.");
-    }
-
     manifest = manifest.replace(
         /<application/,
         permission + "\n    <application"
@@ -48,9 +44,7 @@ function findFile(directory, fileName) {
         if (entry.isDirectory()) {
             const found = findFile(fullPath, fileName);
 
-            if (found) {
-                return found;
-            }
+            if (found) return found;
         } else if (entry.name === fileName) {
             return fullPath;
         }
@@ -94,7 +88,7 @@ const pluginPath = path.join(
 );
 
 // =====================================
-// CRIAR PLUGIN NATIVO DE EXPORTAÇÃO
+// PLUGIN NATIVO DE EXPORTAÇÃO DE BACKUP
 // =====================================
 
 const pluginCode = `package ${packageName};
@@ -223,11 +217,7 @@ public class BackupExporterPlugin extends Plugin {
 
             if (fileUri != null) {
                 try {
-                    resolver.delete(
-                        fileUri,
-                        null,
-                        null
-                    );
+                    resolver.delete(fileUri, null, null);
                 } catch (Exception ignored) {
                 }
             }
@@ -279,9 +269,7 @@ if (!mainActivity.includes("BackupExporterPlugin.class")) {
 }`
         );
 
-    } else if (
-        /public\s+void\s+onCreate\s*\(/.test(mainActivity)
-    ) {
+    } else if (/public\s+void\s+onCreate\s*\(/.test(mainActivity)) {
 
         mainActivity = mainActivity.replace(
             /(public\s+void\s+onCreate\s*\([^)]*\)\s*\{)/,
@@ -294,14 +282,11 @@ if (!mainActivity.includes("BackupExporterPlugin.class")) {
         );
     }
 
-    fs.writeFileSync(
-        mainActivityPath,
-        mainActivity
-    );
+    fs.writeFileSync(mainActivityPath, mainActivity);
 }
 
 // =====================================
-// IDENTIDADE VISUAL — ÍCONE ORBIA
+// PASTAS DE RECURSOS ANDROID
 // =====================================
 
 const resRoot = path.join(
@@ -309,25 +294,10 @@ const resRoot = path.join(
     "app/src/main/res"
 );
 
-const mipmapRoot = path.join(
-    resRoot,
-    "mipmap"
-);
-
-const adaptiveRoot = path.join(
-    resRoot,
-    "mipmap-anydpi-v26"
-);
-
-const drawableRoot = path.join(
-    resRoot,
-    "drawable"
-);
-
-const valuesRoot = path.join(
-    resRoot,
-    "values"
-);
+const mipmapRoot = path.join(resRoot, "mipmap");
+const adaptiveRoot = path.join(resRoot, "mipmap-anydpi-v26");
+const drawableRoot = path.join(resRoot, "drawable");
+const valuesRoot = path.join(resRoot, "values");
 
 for (const directory of [
     mipmapRoot,
@@ -339,23 +309,16 @@ for (const directory of [
 }
 
 // =====================================
-// COR DE FUNDO DO ÍCONE
+// COR DE FUNDO
 // =====================================
 
-const colorsPath = path.join(
-    valuesRoot,
-    "colors.xml"
-);
+const colorsPath = path.join(valuesRoot, "colors.xml");
 
-let colorsXml;
-
-if (fs.existsSync(colorsPath)) {
-    colorsXml = fs.readFileSync(colorsPath, "utf8");
-} else {
-    colorsXml = `<?xml version="1.0" encoding="utf-8"?>
+let colorsXml = fs.existsSync(colorsPath)
+    ? fs.readFileSync(colorsPath, "utf8")
+    : `<?xml version="1.0" encoding="utf-8"?>
 <resources>
 </resources>`;
-}
 
 if (!colorsXml.includes('name="orbia_icon_background"')) {
     colorsXml = colorsXml.replace(
@@ -367,45 +330,73 @@ if (!colorsXml.includes('name="orbia_icon_background"')) {
 fs.writeFileSync(colorsPath, colorsXml);
 
 // =====================================
-// SILHUETA E ÓRBITA — ÍCONE
+// SILHUETA LATERAL MINIMALISTA
 // =====================================
 
-const foregroundIcon = `<?xml version="1.0" encoding="utf-8"?>
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
+const personHead = `
+    <path
+        android:fillColor="#8EAFFF"
+        android:pathData="
+            M49,23
+            C53,20 59,22 61,27
+            C63,30 62,34 60,37
+            L64,40
+            L59,42
+            C57,45 52,45 49,42
+            C45,39 44,34 45,30
+            C45,27 46,25 49,23 Z
+        " />`;
 
+const personBody = `
+    <path
+        android:fillColor="#8EAFFF"
+        android:pathData="
+            M49,44
+            C46,46 45,50 46,55
+            L49,64
+            L45,78
+            C44,81 46,83 49,83
+            C51,83 52,81 53,78
+            L57,65
+            L59,78
+            C60,81 62,82 64,81
+            C66,80 66,78 65,75
+            L62,61
+            L63,51
+            C65,54 68,56 72,57
+            L77,57
+            C79,57 80,55 79,53
+            C78,51 76,51 73,51
+            L68,49
+            L65,44
+            C61,41 54,41 49,44 Z
+        " />`;
+
+const orbit = `
     <path
         android:fillColor="#00000000"
         android:strokeColor="#45D6B1"
         android:strokeWidth="1.8"
         android:strokeLineCap="round"
-        android:pathData="M15,72 C27,25 78,18 96,42 C106,56 84,83 57,88 C35,92 15,84 15,72" />
+        android:pathData="
+            M15,72
+            C27,25 78,18 96,42
+            C106,56 84,83 57,88
+            C35,92 15,84 15,72
+        " />`;
 
-    <path
-        android:fillColor="#8EAFFF"
-        android:pathData="M54,27 A8,8 0,1 0,54 43 A8,8 0,1 0,54 27" />
-
-    <path
-        android:fillColor="#8EAFFF"
-        android:pathData="M43,47 C39,48 36,53 36,59 L33,76 C32,80 35,83 39,83 C42,83 44,81 45,77 L49,63 L49,87 L59,87 L59,63 L63,77 C64,81 66,83 69,83 C73,83 76,80 75,76 L72,59 C72,53 69,48 65,47 Z" />
-
+const dot = `
     <path
         android:fillColor="#45D6B1"
-        android:pathData="M91,37 A3.2,3.2 0,1 0,91 43.4 A3.2,3.2 0,1 0,91 37" />
-
-</vector>`;
-
-fs.writeFileSync(
-    path.join(drawableRoot, "orbia_icon_foreground.xml"),
-    foregroundIcon
-);
+        android:pathData="
+            M91,37
+            A3.2,3.2 0,1 0 91,43.4
+            A3.2,3.2 0,1 0 91,37
+        " />`;
 
 // =====================================
-// ÍCONE LEGADO PARA ANDROID 5+
-/* ================================== */
+// ÍCONE VETORIAL LEGADO
+// =====================================
 
 const legacyIcon = `<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
@@ -418,24 +409,10 @@ const legacyIcon = `<?xml version="1.0" encoding="utf-8"?>
         android:fillColor="#101722"
         android:pathData="M0,0 H108 V108 H0 Z" />
 
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#45D6B1"
-        android:strokeWidth="1.8"
-        android:strokeLineCap="round"
-        android:pathData="M15,72 C27,25 78,18 96,42 C106,56 84,83 57,88 C35,92 15,84 15,72" />
-
-    <path
-        android:fillColor="#8EAFFF"
-        android:pathData="M54,27 A8,8 0,1 0,54 43 A8,8 0,1 0,54 27" />
-
-    <path
-        android:fillColor="#8EAFFF"
-        android:pathData="M43,47 C39,48 36,53 36,59 L33,76 C32,80 35,83 39,83 C42,83 44,81 45,77 L49,63 L49,87 L59,87 L59,63 L63,77 C64,81 66,83 69,83 C73,83 76,80 75,76 L72,59 C72,53 69,48 65,47 Z" />
-
-    <path
-        android:fillColor="#45D6B1"
-        android:pathData="M91,37 A3.2,3.2 0,1 0,91 43.4 A3.2,3.2 0,1 0,91 37" />
+    ${orbit}
+    ${personHead}
+    ${personBody}
+    ${dot}
 
 </vector>`;
 
@@ -450,8 +427,27 @@ fs.writeFileSync(
 );
 
 // =====================================
-// ÍCONES ADAPTÁVEIS — ANDROID 8+
-/* ================================== */
+// ÍCONE ADAPTÁVEL
+// =====================================
+
+const foregroundIcon = `<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    ${orbit}
+    ${personHead}
+    ${personBody}
+    ${dot}
+
+</vector>`;
+
+fs.writeFileSync(
+    path.join(drawableRoot, "orbia_icon_foreground.xml"),
+    foregroundIcon
+);
 
 const adaptiveIcon = `<?xml version="1.0" encoding="utf-8"?>
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
@@ -470,17 +466,13 @@ fs.writeFileSync(
 );
 
 // =====================================
-// DEFINIR ÍCONE NO MANIFESTO
+// CONFIGURAR ÍCONE NO MANIFESTO
 // =====================================
-
-if (!manifest.includes("<application")) {
-    throw new Error("Tag application não encontrada no manifesto.");
-}
 
 manifest = manifest.replace(
     /<application\b([^>]*)>/,
     (match, attributes) => {
-        let updated = attributes
+        const updated = attributes
             .replace(/\s+android:icon="[^"]*"/g, "")
             .replace(/\s+android:roundIcon="[^"]*"/g, "");
 
@@ -494,4 +486,4 @@ fs.writeFileSync(manifestPath, manifest);
 
 console.log("Permissão de alarmes exatos configurada.");
 console.log("Plugin nativo de backup criado e registrado.");
-console.log("Ícones ORBIA criados e configurados no Android.");
+console.log("Ícones ORBIA atualizados com silhueta lateral.");
