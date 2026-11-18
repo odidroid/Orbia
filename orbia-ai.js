@@ -265,14 +265,23 @@
             }
         }
 
-        api.onDownloadProgress(setProgress).catch(() => {});
-        api.onDownloadState(event => {
-            setState(event);
-            if (event.state === "completed" || event.state === "error" || event.state === "cancelled") {
-                button.dataset.downloading = "false";
-                pollDownloadStatus();
-            }
-        }).catch(() => {});
+        // A listener failure must not interrupt creation of the runtime controls.
+        try {
+            Promise.resolve(api.onDownloadProgress(setProgress)).catch(() => {});
+        } catch (error) {
+            console.warn("[ORBIA IA] Não foi possível registrar o progresso do download.", error);
+        }
+        try {
+            Promise.resolve(api.onDownloadState(event => {
+                setState(event);
+                if (event.state === "completed" || event.state === "error" || event.state === "cancelled") {
+                    button.dataset.downloading = "false";
+                    pollDownloadStatus();
+                }
+            })).catch(() => {});
+        } catch (error) {
+            console.warn("[ORBIA IA] Não foi possível registrar os estados do download.", error);
+        }
 
         api.getStatus().then(status => {
             if (status.modelInstalled) {
@@ -369,7 +378,13 @@
             }
         });
 
-        api.onDownloadState(event => { if (event.state === "completed") refresh(); }).catch(() => {});
+        try {
+            Promise.resolve(api.onDownloadState(event => {
+                if (event.state === "completed") refresh();
+            })).catch(() => {});
+        } catch (error) {
+            console.warn("[ORBIA IA] Não foi possível registrar a atualização do runtime.", error);
+        }
 
         api.getStatus().then(current => {
             if (current.modelInstalled) {
@@ -473,7 +488,16 @@
     }
 
     if (plugin()) {
-        createDownloadControls();
-        createRuntimeControls();
+        // Build the load panel first: a download-listener error must never hide it.
+        try {
+            createRuntimeControls();
+        } catch (error) {
+            console.error("[ORBIA IA] Falha ao criar os controles de carregamento.", error);
+        }
+        try {
+            createDownloadControls();
+        } catch (error) {
+            console.error("[ORBIA IA] Falha ao criar os controles de download.", error);
+        }
     }
 })();
