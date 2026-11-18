@@ -36,7 +36,7 @@ if (!mainActivity.includes("OrbiaLocalAIPlugin.class")) {
     if (!mainActivity.includes(importLine)) {
         mainActivity = mainActivity.replace(
             packageMatch[0],
-            packageMatch[0] + "\\n\\n" + importLine
+            packageMatch[0] + "\n\n" + importLine
         );
     }
 
