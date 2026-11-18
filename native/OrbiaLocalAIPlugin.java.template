@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class OrbiaLocalAIPlugin extends Plugin {
     private static final String MODEL_FILE = "qwen2.5-0.5b-instruct-q4_0.gguf";
     private static final String MODEL_URL =
-        "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_0.gguf?download=true";
+        "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/12145bd1d629190a4d44254073650877954d02c9/qwen2.5-0.5b-instruct-q4_0.gguf?download=true";
     private static final long EXPECTED_APPROX_BYTES = 429L * 1024L * 1024L;
     private static final String EXPECTED_SHA256 = "7671c0c304e6ce5a7fc577bcb12aba01e2c155cc2efd29b2213c95b18edaf6ed";
 
@@ -88,6 +88,11 @@ public class OrbiaLocalAIPlugin extends Plugin {
             return;
         }
 
+        long freeSpace = modelDirectory().getFreeSpace();
+        if (freeSpace < EXPECTED_APPROX_BYTES + 64L * 1024L * 1024L) {
+            call.reject("Espaço insuficiente. Libere pelo menos 500 MB antes de baixar o modelo.");
+            return;
+        }
         cancelDownload.set(false);
         downloading = true;
         JSObject accepted = new JSObject();
@@ -155,7 +160,8 @@ public class OrbiaLocalAIPlugin extends Plugin {
                 throw new Exception("O arquivo recebido não parece ser um modelo GGUF válido.");
             }
             if (!EXPECTED_SHA256.equals(sha256(part))) {
-                throw new Exception("A verificação SHA-256 do modelo falhou. O arquivo parcial foi preservado para nova tentativa.");
+                part.delete();
+                throw new Exception("A verificação SHA-256 do modelo falhou. O download foi descartado por segurança; tente novamente.");
             }
 
             File destination = modelFile();
@@ -213,7 +219,7 @@ public class OrbiaLocalAIPlugin extends Plugin {
         event.put("downloadedBytes", downloaded);
         event.put("totalBytes", total);
         event.put("progress", total > 0 ? Math.min(100, (downloaded * 100.0) / total) : -1);
-        notifyListeners("modelDownloadProgress", event);
+        new Handler(Looper.getMainLooper()).post(() -> notifyListeners("modelDownloadProgress", event));
     }
 
     private void emitDownloadState(String state, long downloaded, long total, String message) {
@@ -223,7 +229,7 @@ public class OrbiaLocalAIPlugin extends Plugin {
         event.put("totalBytes", total);
         event.put("progress", total > 0 ? Math.min(100, (downloaded * 100.0) / total) : -1);
         event.put("message", message);
-        notifyListeners("modelDownloadState", event);
+        new Handler(Looper.getMainLooper()).post(() -> notifyListeners("modelDownloadState", event));
     }
 
     @PluginMethod
