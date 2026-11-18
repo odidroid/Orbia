@@ -35,18 +35,18 @@ const importLine = `import ${packageName}.OrbiaLocalAIPlugin;`;
 if (!mainActivity.includes("OrbiaLocalAIPlugin.class")) {
     if (!mainActivity.includes(importLine)) {
         mainActivity = mainActivity.replace(
-            new RegExp(`(package\\s+${packageName.replace(/\\./g, "\\\\.")}\\s*;)`),
-            `$1\\n\\n${importLine}`
+            packageMatch[0],
+            packageMatch[0] + "\\n\\n" + importLine
         );
     }
 
-    if (/public\\s+void\\s+onCreate\\s*\\(/.test(mainActivity)) {
+    if (/public\s+void\s+onCreate\s*\(/.test(mainActivity)) {
         mainActivity = mainActivity.replace(
-            /(public\\s+void\\s+onCreate\\s*\\([^)]*\\)\\s*\\{)/,
-            "$1\\n        registerPlugin(OrbiaLocalAIPlugin.class);"
+            /(public\s+void\s+onCreate\s*\([^)]*\)\s*\{)/,
+            "$1\n        registerPlugin(OrbiaLocalAIPlugin.class);"
         );
     } else {
-        const emptyActivity = /public\\s+class\\s+MainActivity\\s+extends\\s+BridgeActivity\\s*\\{\\s*\\}/;
+        const emptyActivity = /public\s+class\s+MainActivity\s+extends\s+BridgeActivity\s*\{\s*\}/;
         if (!emptyActivity.test(mainActivity)) {
             throw new Error("Não foi possível registrar o plugin na MainActivity.");
         }
