@@ -947,3 +947,82 @@ body.dark-theme .sleep-hours strong {
     font-size: 11px;
     line-height: 1.5;
 }
+
+
+/* Runtime llama.cpp e conversa local */
+.orbia-ai-runtime-controls {
+    display: grid;
+    gap: 9px;
+    margin-top: 16px;
+}
+.orbia-ai-runtime-status {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+.orbia-ai-local-chat {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+.orbia-ai-local-chat-log {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 330px;
+    overflow-y: auto;
+    padding: 3px 1px 12px;
+}
+.orbia-ai-local-assistant,
+.orbia-ai-local-user {
+    max-width: 92%;
+    border-radius: 14px;
+    padding: 10px 12px;
+    overflow-wrap: anywhere;
+}
+.orbia-ai-local-assistant {
+    align-self: flex-start;
+    background: var(--background);
+    color: var(--text);
+}
+.orbia-ai-local-user {
+    align-self: flex-end;
+    background: var(--accent);
+    color: white;
+}
+.orbia-ai-local-assistant strong {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 11px;
+}
+.orbia-ai-local-assistant p,
+.orbia-ai-local-user p {
+    white-space: pre-wrap;
+    font-size: 12px;
+    line-height: 1.55;
+}
+.orbia-ai-local-chat form {
+    display: grid;
+    gap: 8px;
+}
+.orbia-ai-local-chat textarea {
+    width: 100%;
+    min-height: 58px;
+    resize: vertical;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 11px;
+    color: var(--text);
+    background: var(--background);
+    font: inherit;
+    font-size: 13px;
+}
+.orbia-ai-chat-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+.orbia-ai-chat-actions button[hidden],
+.orbia-ai-runtime-controls button[hidden] {
+    display: none;
+}
