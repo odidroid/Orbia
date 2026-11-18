@@ -48,6 +48,7 @@
             heading.textContent = copy.title + (name ? ", " + name : "") + "?";
             subtitle.textContent = copy.subtitle;
         }
+        document.dispatchEvent(new Event("orbia:profile-ready"));
     }
 
     function mountStyles() {
@@ -55,7 +56,7 @@
         const style = document.createElement("style");
         style.id = "orbia-profile-styles";
         style.textContent = `
-        #orbia-onboarding{position:fixed;inset:0;z-index:1500;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(10,18,30,.78);backdrop-filter:blur(9px);overflow-y:auto}
+        body.orbia-first-launch > *:not(#orbia-onboarding){visibility:hidden!important}\n        #orbia-onboarding{position:fixed;inset:0;z-index:1500;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(10,18,30,.78);backdrop-filter:blur(9px);overflow-y:auto}
         #orbia-onboarding.active{display:flex}
         .orbia-onboarding-card{width:100%;max-width:460px;max-height:calc(100vh - 44px);overflow-y:auto;padding:26px 22px;border:1px solid var(--border);border-radius:24px;background:var(--surface);color:var(--text);box-shadow:0 24px 70px rgba(0,0,0,.25)}
         .orbia-onboarding-mark{width:48px;height:48px;display:grid;place-items:center;border-radius:16px;background:rgba(53,184,154,.13);color:var(--accent);font-size:25px;margin-bottom:18px}
@@ -120,6 +121,7 @@
                     localStorage.setItem("orbia-sleep-reminders", JSON.stringify({ enabled: false, bedtime, waketime }));
                 }
                 overlay.classList.remove("active");
+                document.body.classList.remove("orbia-first-launch");
                 document.body.style.overflow = "";
                 refresh();
             } catch (error) {
@@ -133,6 +135,7 @@
         mountStyles();
         mountOnboarding();
         if (!profile || profile.completed !== true) {
+            document.body.classList.add("orbia-first-launch");
             $("orbia-onboarding").classList.add("active");
             document.body.style.overflow = "hidden";
         }
@@ -179,6 +182,6 @@
     if (editButton) editButton.addEventListener("click", () => window.OrbiaProfile.edit());
 
     refresh();
-    window.setTimeout(showOnboardingIfNeeded, 4100);
+    showOnboardingIfNeeded();
     window.setInterval(refresh, 60000);
 })();
