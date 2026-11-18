@@ -341,6 +341,7 @@
         const send = chat.querySelector("#orbia-ai-send-button");
         const stop = chat.querySelector("#orbia-ai-stop-button");
         let activeAssistant = null;
+        const conversationHistory = [];
 
         function addMessage(kind, text) {
             const bubble = document.createElement("div");
@@ -375,9 +376,12 @@
             send.disabled = true;
             stop.hidden = false;
             try {
-                const result = await api.generate({ prompt, maxTokens: 192, temperature: 0.7 });
+                const recentContext = conversationHistory.slice(-3).map(turn => `Usuário: ${turn.user}\\nÓrbia: ${turn.assistant}`).join("\\n");
+                const fullPrompt = recentContext ? `${recentContext}\\nUsuário: ${prompt}\\nÓrbia:` : prompt;
+                const result = await api.generate({ prompt: fullPrompt, maxTokens: 192, temperature: 0.7 });
                 if (!activeAssistant.textContent && result?.text) activeAssistant.textContent = result.text;
                 if (!activeAssistant.textContent) activeAssistant.textContent = "Resposta interrompida.";
+                else conversationHistory.push({ user: prompt, assistant: activeAssistant.textContent });
             } catch (error) {
                 activeAssistant.textContent = error.message || "Não consegui gerar uma resposta local.";
             } finally {
