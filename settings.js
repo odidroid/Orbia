@@ -399,8 +399,8 @@ function validateBackup(data) {
 
     if (data.profile !== undefined && data.profile !== null) {
         const profile = data.profile;
-        const validTime = value => typeof value === "string" && /^([01]\\d|2[0-3]):[0-5]\\d$/.test(value);
-        if (!profile || typeof profile !== "object" || typeof profile.name !== "string" || !profile.name.trim() || typeof profile.birthDate !== "string" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(profile.birthDate) || !validTime(profile.bedtime) || !validTime(profile.waketime)) return false;
+        const validTime = value => typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+        if (!profile || typeof profile !== "object" || typeof profile.name !== "string" || !profile.name.trim() || typeof profile.birthDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(profile.birthDate) || !validTime(profile.bedtime) || !validTime(profile.waketime)) return false;
     }
 
     if (data.notificationSettings !== undefined) {
