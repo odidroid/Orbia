@@ -118,6 +118,7 @@
                     localStorage.setItem("orbia-sleep-reminders", JSON.stringify({ enabled: false, bedtime, waketime }));
                 }
                 overlay.classList.remove("active");
+                document.body.style.overflow = "";
                 refresh();
             } catch (error) {
                 console.error("Não foi possível salvar o perfil ORBIA:", error);
@@ -151,7 +152,7 @@
         getProfile: () => profile ? { ...profile } : null,
         refresh,
         edit: () => {
-            if (!$("orbia-onboarding")) mountOnboarding();
+            if (!$("orbia-onboarding")) { mountStyles(); mountOnboarding(); }
             $("orbia-profile-name").value = profile?.name || "";
             $("orbia-profile-birth").value = profile?.birthDate || "";
             $("orbia-profile-bedtime").value = profile?.bedtime || "22:00";
@@ -171,6 +172,9 @@
         }
     };
     originalSubmit();
+
+    const editButton = $("edit-orbia-profile");
+    if (editButton) editButton.addEventListener("click", () => window.OrbiaProfile.edit());
 
     refresh();
     window.setTimeout(showOnboardingIfNeeded, 4100);
