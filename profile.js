@@ -46,7 +46,8 @@
             heading.textContent = period.text + (name ? ", " + name : "") + "! " + period.emoji;
             subtitle.textContent = copy.title + (name ? ", " + name : "") + "?";
         } else {
-            heading.textContent = copy.title + (name ? ", " + name : "") + "?";
+            const punctuation = currentPage === "ai" ? "." : "?";
+            heading.textContent = copy.title + (name ? ", " + name : "") + punctuation;
             subtitle.textContent = copy.subtitle;
         }
         document.dispatchEvent(new Event("orbia:profile-ready"));
