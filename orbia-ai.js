@@ -123,6 +123,27 @@
                 statusText.textContent = "Modelo baixado e verificado. A conversa ainda depende da integração do motor local.";
                 button.textContent = "Modelo instalado";
                 button.disabled = true;
+                const removeButton = document.createElement("button");
+                removeButton.type = "button";
+                removeButton.className = "settings-button secondary";
+                removeButton.textContent = "Remover modelo do aparelho";
+                removeButton.addEventListener("click", async () => {
+                    if (!window.confirm("Deseja remover o arquivo de IA deste aparelho? Seus dados do ORBIA não serão apagados.")) return;
+                    removeButton.disabled = true;
+                    try {
+                        await api.deleteModel();
+                        fill.style.width = "0";
+                        progress.setAttribute("aria-valuenow", "0");
+                        statusText.textContent = "Modelo removido do armazenamento privado.";
+                        button.textContent = "Baixar modelo (429 MB)";
+                        button.disabled = false;
+                        removeButton.remove();
+                    } catch (error) {
+                        statusText.textContent = error.message || "Não foi possível remover o modelo.";
+                        removeButton.disabled = false;
+                    }
+                });
+                controls.appendChild(removeButton);
             } else if (event.state === "cancelled") {
                 statusText.textContent = "Download pausado. Toque em continuar para retomar de onde parou.";
                 button.textContent = "Continuar download";
@@ -181,6 +202,27 @@
                 statusText.textContent = "Modelo já instalado e armazenado neste aparelho.";
                 button.textContent = "Modelo instalado";
                 button.disabled = true;
+                const removeButton = document.createElement("button");
+                removeButton.type = "button";
+                removeButton.className = "settings-button secondary";
+                removeButton.textContent = "Remover modelo do aparelho";
+                removeButton.addEventListener("click", async () => {
+                    if (!window.confirm("Deseja remover o arquivo de IA deste aparelho? Seus dados do ORBIA não serão apagados.")) return;
+                    removeButton.disabled = true;
+                    try {
+                        await api.deleteModel();
+                        fill.style.width = "0";
+                        progress.setAttribute("aria-valuenow", "0");
+                        statusText.textContent = "Modelo removido do armazenamento privado.";
+                        button.textContent = "Baixar modelo (429 MB)";
+                        button.disabled = false;
+                        removeButton.remove();
+                    } catch (error) {
+                        statusText.textContent = error.message || "Não foi possível remover o modelo.";
+                        removeButton.disabled = false;
+                    }
+                });
+                controls.appendChild(removeButton);
             } else if (status.downloading) {
                 button.dataset.downloading = "true";
                 button.textContent = "Pausar download";
