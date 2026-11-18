@@ -162,7 +162,7 @@ Java___PACKAGE_UNDERSCORES___OrbiaLocalAIPlugin_nativeGenerate(
     jmethodID on_token = callback_class ? env->GetMethodID(callback_class, "onToken", "(Ljava/lang/String;)V") : nullptr;
 
     const int32_t limit = std::max(1, std::min(256, static_cast<int>(max_tokens)));
-    for (int32_t generated = 0; result_code == 0 && generated < limit && !g_cancel.load(); ++generated) {
+    for (int32_t generated = 0; result_code == 0 && generated < limit && !g_cancel.load() && static_cast<uint32_t>(position) < context_limit; ++generated) {
         const llama_token token = llama_sampler_sample(sampler, g_context, -1);
         if (llama_vocab_is_eog(g_vocab, token)) break;
         llama_sampler_accept(sampler, token);
