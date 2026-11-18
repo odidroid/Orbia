@@ -3,6 +3,8 @@ name: Gerar APK ORBIA
 
 on:
   workflow_dispatch:
+  push:
+    branches: [feat/ia-local-foundation]
   pull_request:
     branches: [main]
 
