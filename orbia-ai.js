@@ -139,6 +139,8 @@
                     if (!window.confirm("Deseja remover o arquivo de IA deste aparelho? Seus dados do ORBIA não serão apagados.")) return;
                     removeButton.disabled = true;
                     try {
+                        const current = await api.getStatus();
+                        if (current.runtimeConnected) await api.unloadModel();
                         await api.deleteModel();
                         fill.style.width = "0";
                         progress.setAttribute("aria-valuenow", "0");
@@ -292,6 +294,8 @@
                 unloadButton.disabled = false;
             }
         });
+
+        api.onDownloadState(event => { if (event.state === "completed") refresh(); }).catch(() => {});
 
         api.getStatus().then(current => {
             if (current.modelInstalled) {
