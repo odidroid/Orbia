@@ -1,0 +1,221 @@
+#include <jni.h>
+#include <android/log.h>
+#include <llama.h>
+
+#include <algorithm>
+#include <atomic>
+#include <mutex>
+#include <string>
+#include <thread>
+#include <vector>
+
+#define LOG_TAG "OrbiaLocalAI"
+#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+
+static std::mutex g_mutex;
+static llama_model * g_model = nullptr;
+static llama_context * g_context = nullptr;
+static const llama_vocab * g_vocab = nullptr;
+static std::atomic<bool> g_cancel{false};
+static bool g_backend_initialized = false;
+
+static std::string jstringToUtf8(JNIEnv * env, jstring value) {
+    if (!value) return {};
+    const char * chars = env->GetStringUTFChars(value, nullptr);
+    if (!chars) return {};
+    std::string result(chars);
+    env->ReleaseStringUTFChars(value, chars);
+    return result;
+}
+
+static jstring toJString(JNIEnv * env, const std::string & value) {
+    return env->NewStringUTF(value.c_str());
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java___PACKAGE_UNDERSCORES___OrbiaLocalAIPlugin_nativeLoadModel(
+        JNIEnv * env, jclass, jstring model_path, jint context_size, jint threads) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+    const std::string path = jstringToUtf8(env, model_path);
+    if (path.empty()) return toJString(env, "Caminho do modelo vazio.");
+
+    if (g_context) {
+        llama_free(g_context);
+        g_context = nullptr;
+    }
+    if (g_model) {
+        llama_model_free(g_model);
+        g_model = nullptr;
+        g_vocab = nullptr;
+    }
+
+    if (!g_backend_initialized) {
+        llama_backend_init();
+        g_backend_initialized = true;
+    }
+
+    llama_model_params model_params = llama_model_default_params();
+    model_params.n_gpu_layers = 0; // CPU: compatível com o Helio G81-Ultra.
+    g_model = llama_model_load_from_file(path.c_str(), model_params);
+    if (!g_model) return toJString(env, "llama.cpp não conseguiu abrir o arquivo GGUF.");
+
+    llama_context_params ctx_params = llama_context_default_params();
+    ctx_params.n_ctx = static_cast<uint32_t>(std::max(512, std::min(2048, context_size)));
+    ctx_params.n_batch = 128;
+    ctx_params.n_ubatch = 128;
+    const int safe_threads = std::max(2, std::min(4, static_cast<int>(threads)));
+    ctx_params.n_threads = safe_threads;
+    ctx_params.n_threads_batch = safe_threads;
+
+    g_context = llama_init_from_model(g_model, ctx_params);
+    if (!g_context) {
+        llama_model_free(g_model);
+        g_model = nullptr;
+        return toJString(env, "Sem memória suficiente para criar o contexto da IA. Feche outros aplicativos e tente novamente.");
+    }
+
+    g_vocab = llama_model_get_vocab(g_model);
+    g_cancel.store(false);
+    return nullptr; // null indica sucesso.
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java___PACKAGE_UNDERSCORES___OrbiaLocalAIPlugin_nativeGenerate(
+        JNIEnv * env, jclass, jstring prompt_value, jint max_tokens, jfloat temperature, jobject callback) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+    if (!g_model || !g_context || !g_vocab) return toJString(env, "Carregue o modelo local antes de conversar.");
+
+    const std::string user_prompt = jstringToUtf8(env, prompt_value);
+    if (user_prompt.empty()) return toJString(env, "Digite uma mensagem para começar.");
+
+    llama_memory_clear(llama_get_memory(g_context), true);
+    g_cancel.store(false);
+
+    std::string prompt;
+    const char * chat_template = llama_model_chat_template(g_model, nullptr);
+    if (chat_template) {
+        llama_chat_message messages[2] = {
+            {"system", "Você é Órbia, uma assistente pessoal útil, acolhedora e objetiva. Responda em português brasileiro. Não invente informações."},
+            {"user", user_prompt.c_str()}
+        };
+        std::vector<char> formatted(std::max<size_t>(4096, user_prompt.size() * 4 + 2048));
+        int32_t length = llama_chat_apply_template(chat_template, messages, 2, true, formatted.data(), static_cast<int32_t>(formatted.size()));
+        if (length < 0) return toJString(env, "Não foi possível formatar a conversa para este modelo.");
+        if (static_cast<size_t>(length) > formatted.size()) {
+            formatted.resize(static_cast<size_t>(length) + 1);
+            length = llama_chat_apply_template(chat_template, messages, 2, true, formatted.data(), static_cast<int32_t>(formatted.size()));
+        }
+        if (length < 0) return toJString(env, "Falha ao preparar o prompt.");
+        prompt.assign(formatted.data(), static_cast<size_t>(length));
+    } else {
+        prompt = "Você é Órbia, uma assistente pessoal. Responda em português brasileiro.\nUsuário: " +
+                 user_prompt + "\nÓrbia:";
+    }
+
+    const int32_t needed = -llama_tokenize(g_vocab, prompt.c_str(), static_cast<int32_t>(prompt.size()), nullptr, 0, true, true);
+    if (needed <= 0) return toJString(env, "Não foi possível tokenizar a mensagem.");
+    std::vector<llama_token> prompt_tokens(static_cast<size_t>(needed));
+    const int32_t token_count = llama_tokenize(g_vocab, prompt.c_str(), static_cast<int32_t>(prompt.size()),
+                                               prompt_tokens.data(), needed, true, true);
+    if (token_count <= 0) return toJString(env, "Falha ao converter a mensagem em tokens.");
+
+    const uint32_t context_limit = llama_n_ctx(g_context);
+    if (static_cast<uint32_t>(token_count + 8) >= context_limit) {
+        return toJString(env, "Mensagem muito longa para a memória disponível. Envie um texto menor.");
+    }
+
+    llama_sampler * sampler = llama_sampler_chain_init(llama_sampler_chain_default_params());
+    llama_sampler_chain_add(sampler, llama_sampler_init_top_k(40));
+    llama_sampler_chain_add(sampler, llama_sampler_init_top_p(0.90f, 1));
+    llama_sampler_chain_add(sampler, llama_sampler_init_temp(std::max(0.1f, std::min(1.2f, temperature))));
+    llama_sampler_chain_add(sampler, llama_sampler_init_dist(LLAMA_DEFAULT_SEED));
+
+    llama_batch_ext * batch = llama_batch_ext_init(g_context);
+    if (!batch) {
+        llama_sampler_free(sampler);
+        return toJString(env, "Não foi possível alocar o lote de tokens.");
+    }
+
+    std::string response;
+    int32_t position = 0;
+    int32_t cursor = 0;
+    int32_t result_code = 0;
+
+    // Prefill em blocos curtos para reduzir o pico de memória.
+    while (cursor < token_count && !g_cancel.load()) {
+        llama_batch_ext_clear(batch);
+        const int32_t count = std::min(128, token_count - cursor);
+        for (int32_t i = 0; i < count; ++i) {
+            const int32_t index = llama_batch_ext_add_token(batch, 0, prompt_tokens[static_cast<size_t>(cursor + i)]);
+            if (index < 0) { result_code = -1; break; }
+            const llama_pos pos = position++;
+            llama_batch_ext_set_pos(batch, index, &pos);
+            if (cursor + i == token_count - 1) llama_batch_ext_set_output_logits(batch, index, true);
+        }
+        if (result_code != 0) break;
+        result_code = llama_process(g_context, LLAMA_PROCESS_TYPE_DECODE, batch);
+        if (result_code != 0) break;
+        cursor += count;
+    }
+
+    jclass callback_class = callback ? env->GetObjectClass(callback) : nullptr;
+    jmethodID on_token = callback_class ? env->GetMethodID(callback_class, "onToken", "(Ljava/lang/String;)V") : nullptr;
+
+    const int32_t limit = std::max(1, std::min(256, static_cast<int>(max_tokens)));
+    for (int32_t generated = 0; result_code == 0 && generated < limit && !g_cancel.load(); ++generated) {
+        const llama_token token = llama_sampler_sample(sampler, g_context, -1);
+        if (llama_vocab_is_eog(g_vocab, token)) break;
+        llama_sampler_accept(sampler, token);
+
+        char piece_buffer[512];
+        int32_t piece_size = llama_token_to_piece(g_vocab, token, piece_buffer, sizeof(piece_buffer), 0, true);
+        if (piece_size < 0) break;
+        std::string piece(piece_buffer, static_cast<size_t>(piece_size));
+        response += piece;
+
+        if (callback && on_token && !piece.empty()) {
+            jstring piece_java = toJString(env, piece);
+            env->CallVoidMethod(callback, on_token, piece_java);
+            env->DeleteLocalRef(piece_java);
+            if (env->ExceptionCheck()) {
+                env->ExceptionClear();
+                break;
+            }
+        }
+
+        llama_batch_ext_clear(batch);
+        const int32_t index = llama_batch_ext_add_token(batch, 0, token);
+        if (index < 0) { result_code = -1; break; }
+        const llama_pos pos = position++;
+        llama_batch_ext_set_pos(batch, index, &pos);
+        llama_batch_ext_set_output_logits(batch, index, true);
+        result_code = llama_process(g_context, LLAMA_PROCESS_TYPE_DECODE, batch);
+    }
+
+    llama_batch_ext_free(batch);
+    llama_sampler_free(sampler);
+
+    if (result_code != 0) return toJString(env, "O mecanismo local encontrou um erro ao processar a mensagem.");
+    if (g_cancel.load()) return toJString(env, response);
+    return toJString(env, response);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java___PACKAGE_UNDERSCORES___OrbiaLocalAIPlugin_nativeStopGeneration(JNIEnv *, jclass) {
+    g_cancel.store(true);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java___PACKAGE_UNDERSCORES___OrbiaLocalAIPlugin_nativeUnloadModel(JNIEnv *, jclass) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+    g_cancel.store(true);
+    if (g_context) {
+        llama_free(g_context);
+        g_context = nullptr;
+    }
+    if (g_model) {
+        llama_model_free(g_model);
+        g_model = nullptr;
+    }
+    g_vocab = nullptr;
+}
