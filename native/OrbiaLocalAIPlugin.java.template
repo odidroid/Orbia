@@ -31,6 +31,9 @@ public class OrbiaLocalAIPlugin extends Plugin {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final AtomicBoolean cancelDownload = new AtomicBoolean(false);
     private volatile boolean downloading = false;
+    private volatile String downloadState = "idle";
+    private volatile String downloadMessage = "";
+    private volatile long downloadedBytes = 0L;
     private volatile boolean modelLoaded = false;
     private volatile boolean generationInProgress = false;
     private volatile boolean modelLoading = false;
@@ -74,6 +77,9 @@ public class OrbiaLocalAIPlugin extends Plugin {
         result.put("generationInProgress", generationInProgress);
         result.put("modelInstalled", modelFile().isFile() && modelFile().length() > 0);
         result.put("downloading", downloading);
+        result.put("downloadState", downloadState);
+        result.put("downloadMessage", downloadMessage);
+        result.put("downloadedBytes", downloadedBytes);
         result.put("mode", modelLoaded ? "local-inference-ready" : (NATIVE_LIBRARY_LOADED ? "runtime-ready-model-not-loaded" : "native-runtime-unavailable"));
         result.put("message", modelLoaded ? "IA local carregada neste aparelho." : (NATIVE_LIBRARY_LOADED ? "Runtime llama.cpp instalado; carregue o modelo para conversar." : "Biblioteca llama.cpp não encontrada neste APK."));
         call.resolve(result);
@@ -90,6 +96,9 @@ public class OrbiaLocalAIPlugin extends Plugin {
         result.put("downloadUrl", MODEL_URL);
         result.put("installed", modelFile().isFile() && modelFile().length() > 0);
         result.put("downloadInProgress", downloading);
+        result.put("downloadState", downloadState);
+        result.put("downloadMessage", downloadMessage);
+        result.put("downloadedBytes", downloadedBytes);
         result.put("runtimeReady", modelLoaded && NATIVE_LIBRARY_LOADED);
         result.put("nativeRuntimeAvailable", NATIVE_LIBRARY_LOADED);
         result.put("loadedInMemory", modelLoaded);
@@ -118,6 +127,9 @@ public class OrbiaLocalAIPlugin extends Plugin {
         }
         cancelDownload.set(false);
         downloading = true;
+        downloadState = "downloading";
+        downloadMessage = "Conectando ao servidor do modelo…";
+        downloadedBytes = partialFile().isFile() ? partialFile().length() : 0L;
         JSObject accepted = new JSObject();
         accepted.put("started", true);
         accepted.put("resuming", partialFile().isFile() && partialFile().length() > 0);
@@ -164,6 +176,7 @@ public class OrbiaLocalAIPlugin extends Plugin {
                     }
                     output.write(buffer, 0, read);
                     downloaded += read;
+                    downloadedBytes = downloaded;
                     long now = System.currentTimeMillis();
                     if (now - lastEvent >= 500) {
                         emitProgress(downloaded, total);
@@ -175,9 +188,15 @@ public class OrbiaLocalAIPlugin extends Plugin {
             }
 
             if (cancelDownload.get()) {
-                emitDownloadState("cancelled", part.length(), total, "Download pausado.");
+                downloadState = "cancelled";
+                downloadMessage = "Download pausado.";
+                emitDownloadState("cancelled", part.length(), total, downloadMessage);
                 return;
             }
+
+            downloadState = "verifying";
+            downloadMessage = "Download concluído. Verificando a integridade do modelo…";
+            emitDownloadState("verifying", part.length(), total, downloadMessage);
 
             if (part.length() < 100L * 1024L * 1024L || !hasGgufMagic(part)) {
                 throw new Exception("O arquivo recebido não parece ser um modelo GGUF válido.");
@@ -187,6 +206,10 @@ public class OrbiaLocalAIPlugin extends Plugin {
                 throw new Exception("A verificação SHA-256 do modelo falhou. O download foi descartado por segurança; tente novamente.");
             }
 
+            downloadState = "installing";
+            downloadMessage = "Verificação concluída. Salvando o modelo no aparelho…";
+            emitDownloadState("installing", part.length(), total, downloadMessage);
+
             File destination = modelFile();
             if (destination.exists() && !destination.delete()) {
                 throw new Exception("Não foi possível substituir o modelo anterior.");
@@ -195,13 +218,24 @@ public class OrbiaLocalAIPlugin extends Plugin {
                 copyFile(part, destination);
                 if (!part.delete()) part.deleteOnExit();
             }
-            emitDownloadState("completed", destination.length(), total, "Modelo baixado e salvo no armazenamento privado do ORBIA.");
+            downloadedBytes = destination.length();
+            downloadState = "completed";
+            downloadMessage = "Modelo baixado, verificado e salvo no armazenamento privado do ORBIA.";
+            downloading = false;
+            emitDownloadState("completed", destination.length(), total, downloadMessage);
         } catch (Exception error) {
-            emitDownloadState("error", partialFile().isFile() ? partialFile().length() : 0L, -1L,
-                error.getMessage() == null ? "Falha no download do modelo." : error.getMessage());
+            downloadState = "error";
+            downloadMessage = error.getMessage() == null ? "Falha no download do modelo." : error.getMessage();
+            downloadedBytes = partialFile().isFile() ? partialFile().length() : 0L;
+            downloading = false;
+            emitDownloadState("error", downloadedBytes, -1L, downloadMessage);
         } finally {
             if (connection != null) connection.disconnect();
             downloading = false;
+            if ("downloading".equals(downloadState) || "verifying".equals(downloadState) || "installing".equals(downloadState)) {
+                downloadState = "error";
+                downloadMessage = "O download foi encerrado inesperadamente. Você pode tentar novamente.";
+            }
         }
     }
 
@@ -238,6 +272,9 @@ public class OrbiaLocalAIPlugin extends Plugin {
 
     private void emitProgress(long downloaded, long total) {
         JSObject event = new JSObject();
+        downloadedBytes = downloaded;
+        downloadState = "downloading";
+        downloadMessage = "Baixando o modelo…";
         event.put("state", "downloading");
         event.put("downloadedBytes", downloaded);
         event.put("totalBytes", total);
@@ -246,6 +283,9 @@ public class OrbiaLocalAIPlugin extends Plugin {
     }
 
     private void emitDownloadState(String state, long downloaded, long total, String message) {
+        downloadState = state;
+        downloadMessage = message;
+        downloadedBytes = downloaded;
         JSObject event = new JSObject();
         event.put("state", state);
         event.put("downloadedBytes", downloaded);
