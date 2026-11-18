@@ -180,6 +180,6 @@
     if (editButton) editButton.addEventListener("click", () => window.OrbiaProfile.edit());
 
     refresh();
-    window.setTimeout(showOnboardingIfNeeded, 4100);
+    showOnboardingIfNeeded();
     window.setInterval(refresh, 60000);
 })();
