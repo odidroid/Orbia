@@ -41,15 +41,22 @@ A integração deve oferecer, no mínimo:
 - Não iniciar downloads sem consentimento; preferir Wi-Fi e informar tamanho aproximado.
 - Validar tamanho e checksum quando houver hash oficial confiável.
 
-## Etapas
+## Estado da implementação
 
-1. Contrato JS e documentação da arquitetura (esta etapa).
-2. Plugin Android nativo para download/armazenamento e integração llama.cpp.
-3. Tela de instalação com progresso, cancelamento, retomada e remoção.
-4. Inferência real, streaming e gestão de memória.
-5. Memória local e integração segura com agenda, hábitos, metas e finanças.
-6. Testes de desempenho e estabilidade no Redmi 14C real.
+- Plugin Capacitor Android `OrbiaLocalAI` registrado no projeto gerado pelo workflow.
+- Download para `files/orbia-models`, dentro do armazenamento privado do aplicativo.
+- Progresso por eventos, pausa, retomada por HTTP Range e remoção do arquivo.
+- Validação do cabeçalho GGUF e SHA-256 antes de finalizar a instalação.
+- Modelo fixado na revisão `12145bd1d629190a4d44254073650877954d02c9` do repositório oficial.
+- Interface de instalação com confirmação explícita, indicação de tamanho e progresso.
 
-## Limitação desta etapa
+## Próximas etapas
 
-A interface atual é apenas uma preparação visual. Este commit não baixa o modelo, não carrega GGUF e não gera respostas. Isso só será anunciado como funcional depois que o plugin Android e o runtime JNI estiverem implementados e testados no aparelho.
+1. Integrar llama.cpp via JNI/NDK para carregar o arquivo instalado.
+2. Implementar geração incremental, cancelamento e liberação de memória.
+3. Adicionar memória local e integração consentida com agenda, hábitos, metas e finanças.
+4. Validar compilação e desempenho/estabilidade no Redmi 14C real.
+
+## Limitação atual
+
+O download e a validação do arquivo estão implementados, mas o modelo ainda não é carregado e não gera respostas. `loadModel` e `generate` retornam uma mensagem explícita de runtime pendente. Não existe fallback para inferência remota.
