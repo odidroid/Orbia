@@ -45,6 +45,9 @@ jobs:
       - name: Configurar permissões Android
         run: node patch-android-manifest.js
 
+      - name: Instalar plugin nativo da ORBIA IA
+        run: node install-local-ai-plugin.js
+
       - name: Sincronizar Capacitor
         run: npx cap sync android
 
