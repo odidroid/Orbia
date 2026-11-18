@@ -394,6 +394,7 @@
                     status.textContent = installed
                         ? (current.message || "O runtime llama.cpp não foi carregado neste APK. Instale a versão mais recente do ORBIA.")
                         : "Aguardando o modelo ser baixado. O runtime local será verificado automaticamente.";
+                    statusPollStopped = installed;
                 } else if (installed) {
                     status.textContent = current.modelLoading
                         ? "Carregando a IA na memória…"
