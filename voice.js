@@ -107,9 +107,12 @@
         const profile = window.OrbiaProfile?.getProfile?.();
         const name = profile?.name?.trim();
         let subtitle = document.querySelector(".greeting span")?.textContent || "Vamos organizar seu dia.";
-        if (name) subtitle = subtitle.replace(new RegExp(",\\s*" + name.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\        const name = profile?.name?.trim();
-        const subtitle = document.querySelector(".greeting span")?.textContent || "Vamos organizar seu dia.";
-        return period + (name ? ", " + name : "") + "! " + subtitle;") + "\\?$", "i"), "?");
+        if (name) {
+            const suffix = ", " + name + "?";
+            if (subtitle.toLocaleLowerCase().endsWith(suffix.toLocaleLowerCase())) {
+                subtitle = subtitle.slice(0, -suffix.length) + "?";
+            }
+        }
         return period + (name ? ", " + name : "") + "! " + subtitle;
     }
     function greetOnce() {
