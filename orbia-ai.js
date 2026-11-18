@@ -369,21 +369,73 @@
             }
         });
 
-        api.onDownloadState(event => { if (event.state === "completed") refresh(); }).catch(() => {});
+        // Atualiza o painel mesmo se o evento de conclusão do download tiver sido
+        // emitido antes de o listener ficar pronto ou se o app voltar do segundo plano.
+        let statusPollTimer = null;
+        let statusPollStopped = false;
 
-        api.getStatus().then(current => {
-            if (current.modelInstalled) {
-                loadButton.disabled = !current.runtimeAvailable;
-                loadButton.hidden = current.runtimeConnected;
-                unloadButton.hidden = !current.runtimeConnected;
-                status.textContent = current.runtimeConnected
-                    ? "IA carregada e pronta neste aparelho."
-                    : (current.runtimeAvailable ? "Modelo instalado. Carregue-o para conversar." : "Runtime nativo ausente neste APK.");
-                if (current.runtimeConnected) createChatControls();
+        async function syncRuntimeStatus() {
+            try {
+                const current = await api.getStatus();
+                const installed = Boolean(current.modelInstalled);
+                const connected = Boolean(current.runtimeConnected);
+                const runtimeAvailable = Boolean(current.runtimeAvailable);
+
+                loadButton.hidden = connected;
+                unloadButton.hidden = !connected;
+                loadButton.disabled = !installed || !runtimeAvailable ||
+                    Boolean(current.modelLoading) || Boolean(current.downloading);
+
+                if (connected) {
+                    status.textContent = "IA carregada e pronta neste aparelho. As respostas são processadas localmente.";
+                    createChatControls();
+                    statusPollStopped = true;
+                } else if (!runtimeAvailable) {
+                    status.textContent = installed
+                        ? (current.message || "O runtime llama.cpp não foi carregado neste APK. Instale a versão mais recente do ORBIA.")
+                        : "Aguardando o modelo ser baixado. O runtime local será verificado automaticamente.";
+                } else if (installed) {
+                    status.textContent = current.modelLoading
+                        ? "Carregando a IA na memória…"
+                        : "Modelo instalado. Toque em “Carregar IA neste celular” para iniciar.";
+                    statusPollStopped = true;
+                } else if (current.downloading) {
+                    status.textContent = "Download em andamento. A opção de carregar será liberada assim que a verificação terminar.";
+                } else {
+                    status.textContent = "Baixe o modelo para habilitar a conversa local.";
+                }
+
+                if (!statusPollStopped && !statusPollTimer) {
+                    statusPollTimer = window.setTimeout(() => {
+                        statusPollTimer = null;
+                        syncRuntimeStatus();
+                    }, 1500);
+                }
+            } catch (_) {
+                status.textContent = "Não foi possível consultar o estado da IA. Tentando novamente…";
+                if (!statusPollTimer) {
+                    statusPollTimer = window.setTimeout(() => {
+                        statusPollTimer = null;
+                        syncRuntimeStatus();
+                    }, 2500);
+                }
             }
-        }).catch(() => {
-            status.textContent = "Não foi possível consultar o estado do runtime.";
-        });
+        }
+
+        api.onDownloadState(event => {
+            if (event.state === "completed" || event.state === "error" || event.state === "cancelled") {
+                statusPollStopped = false;
+                if (statusPollTimer) {
+                    window.clearTimeout(statusPollTimer);
+                    statusPollTimer = null;
+                }
+                syncRuntimeStatus();
+            }
+        }).catch(() => {});
+
+        // Primeira leitura imediata e nova leitura enquanto o modelo ainda não
+        // estiver instalado, evitando depender exclusivamente de eventos nativos.
+        syncRuntimeStatus();
     }
 
     function createChatControls() {
