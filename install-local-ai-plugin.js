@@ -25,11 +25,47 @@ if (!packageMatch) throw new Error("Pacote Java não identificado.");
 const packageName = packageMatch[1];
 const pluginPath = path.join(path.dirname(mainActivityPath), "OrbiaLocalAIPlugin.java");
 const templatePath = path.join(__dirname, "native", "OrbiaLocalAIPlugin.java.template");
-if (!fs.existsSync(templatePath)) throw new Error("Template do plugin ORBIA IA não encontrado.");
+const cmakeTemplatePath = path.join(__dirname, "native", "CMakeLists.txt");
+const cppTemplatePath = path.join(__dirname, "native", "orbia_llama.cpp.template");
+if (![templatePath, cmakeTemplatePath, cppTemplatePath].every(fs.existsSync)) {
+    throw new Error("Templates do plugin ou do runtime llama.cpp não encontrados.");
+}
 
 const pluginSource = fs.readFileSync(templatePath, "utf8")
     .replace("__PACKAGE__", packageName);
 fs.writeFileSync(pluginPath, pluginSource);
+
+const packageJni = packageName.split(".").map(part => part.replace(/_/g, "_1")).join("_");
+const cppDirectory = path.join(androidRoot, "app/src/main/cpp");
+fs.mkdirSync(cppDirectory, { recursive: true });
+fs.copyFileSync(cmakeTemplatePath, path.join(cppDirectory, "CMakeLists.txt"));
+const cppSource = fs.readFileSync(cppTemplatePath, "utf8")
+    .replaceAll("__PACKAGE_UNDERSCORES__", packageJni);
+fs.writeFileSync(path.join(cppDirectory, "orbia_llama.cpp"), cppSource);
+
+const appGradlePath = path.join(androidRoot, "app/build.gradle");
+if (!fs.existsSync(appGradlePath)) throw new Error("android/app/build.gradle não encontrado.");
+let appGradle = fs.readFileSync(appGradlePath, "utf8");
+if (!appGradle.includes("src/main/cpp/CMakeLists.txt")) {
+    appGradle += `
+
+// ORBIA IA local: compila llama.cpp para a arquitetura ARM64 do aparelho.
+android {
+    defaultConfig {
+        ndk {
+            abiFilters 'arm64-v8a'
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            path file('src/main/cpp/CMakeLists.txt')
+            version '3.22.1'
+        }
+    }
+}
+`;
+    fs.writeFileSync(appGradlePath, appGradle);
+}
 
 const importLine = `import ${packageName}.OrbiaLocalAIPlugin;`;
 if (!mainActivity.includes("OrbiaLocalAIPlugin.class")) {
