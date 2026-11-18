@@ -18,7 +18,8 @@ async function build() {
         "finance.js",
         "splash.css",
         "splash.js",
-        "sounds.js"
+        "sounds.js",
+        "voice.js"
     ];
 
     fs.mkdirSync(output, { recursive: true });
@@ -81,7 +82,8 @@ async function build() {
         "notifications.js",
         "backup-exporter.js",
         "splash.js",
-        "sounds.js"
+        "sounds.js",
+        "voice.js"
     ];
 
     for (const script of scripts) {
