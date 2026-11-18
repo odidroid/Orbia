@@ -13,7 +13,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
-import java.io.RandomAccessFile;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.MessageDigest;
@@ -32,6 +31,24 @@ public class OrbiaLocalAIPlugin extends Plugin {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final AtomicBoolean cancelDownload = new AtomicBoolean(false);
     private volatile boolean downloading = false;
+    private volatile boolean modelLoaded = false;
+    private volatile boolean generationInProgress = false;
+    private volatile boolean modelLoading = false;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+
+    private static final boolean NATIVE_LIBRARY_LOADED;
+    static {
+        boolean loaded;
+        try { System.loadLibrary("orbia_llama"); loaded = true; }
+        catch (Throwable error) { loaded = false; }
+        NATIVE_LIBRARY_LOADED = loaded;
+    }
+
+    private interface TokenCallback { void onToken(String token); }
+    private static native String nativeLoadModel(String path, int contextSize, int threads);
+    private static native String nativeGenerate(String prompt, int maxTokens, float temperature, TokenCallback callback);
+    private static native void nativeStopGeneration();
+    private static native void nativeUnloadModel();
 
     private File modelDirectory() {
         File directory = new File(getContext().getFilesDir(), "orbia-models");
@@ -51,11 +68,14 @@ public class OrbiaLocalAIPlugin extends Plugin {
     public void getStatus(PluginCall call) {
         JSObject result = new JSObject();
         result.put("supported", true);
-        result.put("runtimeReady", false);
+        result.put("runtimeReady", modelLoaded && NATIVE_LIBRARY_LOADED);
+        result.put("nativeRuntimeAvailable", NATIVE_LIBRARY_LOADED);
+        result.put("modelLoading", modelLoading);
+        result.put("generationInProgress", generationInProgress);
         result.put("modelInstalled", modelFile().isFile() && modelFile().length() > 0);
         result.put("downloading", downloading);
-        result.put("mode", "download-ready-runtime-pending");
-        result.put("message", "O download local está disponível; o mecanismo de inferência ainda não foi integrado.");
+        result.put("mode", modelLoaded ? "local-inference-ready" : (NATIVE_LIBRARY_LOADED ? "runtime-ready-model-not-loaded" : "native-runtime-unavailable"));
+        result.put("message", modelLoaded ? "IA local carregada neste aparelho." : (NATIVE_LIBRARY_LOADED ? "Runtime llama.cpp instalado; carregue o modelo para conversar." : "Biblioteca llama.cpp não encontrada neste APK."));
         call.resolve(result);
     }
 
@@ -70,6 +90,9 @@ public class OrbiaLocalAIPlugin extends Plugin {
         result.put("downloadUrl", MODEL_URL);
         result.put("installed", modelFile().isFile() && modelFile().length() > 0);
         result.put("downloadInProgress", downloading);
+        result.put("runtimeReady", modelLoaded && NATIVE_LIBRARY_LOADED);
+        result.put("nativeRuntimeAvailable", NATIVE_LIBRARY_LOADED);
+        result.put("loadedInMemory", modelLoaded);
         result.put("resumableBytes", partialFile().isFile() ? partialFile().length() : 0);
         call.resolve(result);
     }
@@ -242,8 +265,8 @@ public class OrbiaLocalAIPlugin extends Plugin {
 
     @PluginMethod
     public void deleteModel(PluginCall call) {
-        if (downloading) {
-            call.reject("Pause ou cancele o download antes de remover o modelo.");
+        if (downloading || modelLoaded || generationInProgress || modelLoading) {
+            call.reject("Descarregue o modelo e aguarde o fim da geração antes de remover o arquivo.");
             return;
         }
         boolean removed = !modelFile().exists() || modelFile().delete();
@@ -259,25 +282,118 @@ public class OrbiaLocalAIPlugin extends Plugin {
 
     @PluginMethod
     public void loadModel(PluginCall call) {
-        call.reject("O modelo pode ser baixado, mas a inferência llama.cpp ainda não está incluída nesta versão.");
+        if (!NATIVE_LIBRARY_LOADED) {
+            call.reject("Runtime llama.cpp não está disponível neste APK.");
+            return;
+        }
+        if (modelLoaded) {
+            JSObject ready = new JSObject();
+            ready.put("loaded", true);
+            ready.put("alreadyLoaded", true);
+            call.resolve(ready);
+            return;
+        }
+        if (modelLoading || downloading) {
+            call.reject("Aguarde o download ou carregamento atual terminar.");
+            return;
+        }
+        if (!modelFile().isFile() || modelFile().length() == 0) {
+            call.reject("Baixe o modelo antes de carregá-lo.");
+            return;
+        }
+        modelLoading = true;
+        int contextSize = Math.max(512, Math.min(2048, call.getInt("contextSize", 1024)));
+        int threads = Math.max(2, Math.min(4, call.getInt("threads", 3)));
+        executor.execute(() -> {
+            String error;
+            try { error = nativeLoadModel(modelFile().getAbsolutePath(), contextSize, threads); }
+            catch (Throwable failure) { error = failure.getMessage(); }
+            final String message = error;
+            mainHandler.post(() -> {
+                modelLoading = false;
+                modelLoaded = message == null;
+                if (modelLoaded) {
+                    JSObject ready = new JSObject();
+                    ready.put("loaded", true);
+                    ready.put("contextSize", contextSize);
+                    ready.put("threads", threads);
+                    call.resolve(ready);
+                } else {
+                    call.reject(message == null ? "Não foi possível carregar o modelo." : message);
+                }
+            });
+        });
     }
 
     @PluginMethod
     public void unloadModel(PluginCall call) {
-        JSObject result = new JSObject();
-        result.put("unloaded", true);
-        call.resolve(result);
+        if (generationInProgress || modelLoading) {
+            call.reject("Aguarde a geração ou o carregamento terminar.");
+            return;
+        }
+        executor.execute(() -> {
+            try { if (NATIVE_LIBRARY_LOADED) nativeUnloadModel(); }
+            catch (Throwable ignored) {}
+            modelLoaded = false;
+            mainHandler.post(() -> {
+                JSObject result = new JSObject();
+                result.put("unloaded", true);
+                call.resolve(result);
+            });
+        });
     }
 
     @PluginMethod
     public void generate(PluginCall call) {
-        call.reject("A geração local ainda não está disponível: o runtime llama.cpp precisa ser integrado.");
+        if (!modelLoaded) {
+            call.reject("Carregue o modelo local antes de conversar.");
+            return;
+        }
+        if (generationInProgress) {
+            call.reject("Já existe uma resposta sendo gerada.");
+            return;
+        }
+        String prompt = call.getString("prompt", "").trim();
+        if (prompt.isEmpty()) {
+            call.reject("Digite uma mensagem.");
+            return;
+        }
+        int maxTokens = Math.max(16, Math.min(256, call.getInt("maxTokens", 192)));
+        float temperature = (float) Math.max(0.1, Math.min(1.2, call.getDouble("temperature", 0.7)));
+        generationInProgress = true;
+        executor.execute(() -> {
+            String answer;
+            try {
+                answer = nativeGenerate(prompt, maxTokens, temperature, token -> {
+                    JSObject event = new JSObject();
+                    event.put("token", token);
+                    mainHandler.post(() -> notifyListeners("generationToken", event));
+                });
+            } catch (Throwable failure) {
+                answer = null;
+            }
+            final String resultText = answer;
+            mainHandler.post(() -> {
+                generationInProgress = false;
+                if (resultText == null) {
+                    call.reject("A geração local falhou. Tente descarregar e carregar o modelo novamente.");
+                } else {
+                    JSObject result = new JSObject();
+                    result.put("text", resultText);
+                    call.resolve(result);
+                    JSObject state = new JSObject();
+                    state.put("state", "completed");
+                    notifyListeners("generationState", state);
+                }
+            });
+        });
     }
 
     @PluginMethod
     public void stopGeneration(PluginCall call) {
+        if (NATIVE_LIBRARY_LOADED) nativeStopGeneration();
         JSObject result = new JSObject();
-        result.put("stopped", true);
+        result.put("stopRequested", true);
         call.resolve(result);
     }
 }
