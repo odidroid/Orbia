@@ -106,22 +106,25 @@
         const period = hour >= 5 && hour < 12 ? "Bom dia" : hour >= 12 && hour < 18 ? "Boa tarde" : "Boa noite";
         const profile = window.OrbiaProfile?.getProfile?.();
         const name = profile?.name?.trim();
+        let subtitle = document.querySelector(".greeting span")?.textContent || "Vamos organizar seu dia.";
+        if (name) subtitle = subtitle.replace(new RegExp(",\\s*" + name.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\        const name = profile?.name?.trim();
         const subtitle = document.querySelector(".greeting span")?.textContent || "Vamos organizar seu dia.";
+        return period + (name ? ", " + name : "") + "! " + subtitle;") + "\\?$", "i"), "?");
         return period + (name ? ", " + name : "") + "! " + subtitle;
     }
     function greetOnce() {
         if (greetedThisLaunch || !settings.enabled) return;
         const profile = window.OrbiaProfile?.getProfile?.();
         if (!profile || profile.completed !== true) return;
-        greetedThisLaunch = true;
         window.setTimeout(() => {
-            if (settings.enabled) speak(makeGreeting());
-        }, 900);
+            if (!settings.enabled || greetedThisLaunch) return;
+            greetedThisLaunch = speak(makeGreeting());
+        }, 1400);
     }
     function init() {
         mount();
         greetOnce();
-        window.speechSynthesis?.addEventListener?.("voiceschanged", refreshVoices);
+        window.speechSynthesis?.addEventListener?.("voiceschanged", () => { refreshVoices(); greetOnce(); });
         document.addEventListener("orbia:profile-ready", greetOnce);
         document.addEventListener("visibilitychange", () => {
             if (document.hidden && "speechSynthesis" in window) window.speechSynthesis.cancel();
