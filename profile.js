@@ -22,7 +22,8 @@
         habits: { title: "Vamos cuidar dos seus hábitos", subtitle: "Pequenas atitudes constroem grandes mudanças." },
         goals: { title: "Vamos avançar nas suas metas", subtitle: "Seus objetivos, no seu ritmo." },
         finance: { title: "Vamos organizar suas finanças", subtitle: "Mais clareza para cuidar do seu dinheiro." },
-        settings: { title: "Vamos ajustar seu ORBIA", subtitle: "Deixe tudo do seu jeito." }
+        settings: { title: "Vamos ajustar seu ORBIA", subtitle: "Deixe tudo do seu jeito." },
+        ai: { title: "Estou aqui com você", subtitle: "Um espaço para conversar, pensar e planejar." }
     };
 
     function greetingPeriod() {
