@@ -33,6 +33,7 @@
     }
 
     function refresh() {
+        profile = readProfile();
         const heading = document.querySelector(".greeting h1");
         const subtitle = document.querySelector(".greeting span");
         if (!heading || !subtitle) return;
@@ -93,7 +94,8 @@
         document.body.appendChild(overlay);
 
         const birth = $("orbia-profile-birth");
-        birth.max = new Date().toISOString().slice(0, 10);
+        const localToday = () => { const now = new Date(); return now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0"); };
+        birth.max = localToday();
         $("orbia-profile-form").addEventListener("submit", event => {
             event.preventDefault();
             const name = $("orbia-profile-name").value.trim();
@@ -104,7 +106,7 @@
                 $("orbia-profile-error").textContent = "Preencha todos os campos para continuar.";
                 return;
             }
-            if (birthDate > new Date().toISOString().slice(0, 10)) {
+            if (birthDate > localToday()) {
                 $("orbia-profile-error").textContent = "A data de nascimento não pode estar no futuro.";
                 return;
             }
