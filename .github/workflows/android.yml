@@ -59,8 +59,17 @@ jobs:
             exit 1
           fi
 
-          if ! keytool -list -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey >/dev/null; then
-            echo "::error::O Base64 foi decodificado, mas o keystore não pôde ser aberto com a senha/alias esperados (senha: android; alias: androiddebugkey)."
+          # Primeiro valida a abertura do arquivo sem exigir um alias específico.
+          # O diagnóstico do keytool ajuda a separar senha/formato de alias ausente.
+          if ! KEYSTORE_INFO="$(keytool -list -keystore "$HOME/.android/debug.keystore" -storepass android 2>&1)"; then
+            echo "::error::O Base64 foi decodificado, mas o Java não conseguiu abrir o keystore. Diagnóstico do keytool:"
+            printf '%s\n' "$KEYSTORE_INFO"
+            exit 1
+          fi
+
+          if ! printf '%s\n' "$KEYSTORE_INFO" | grep -Fq 'androiddebugkey'; then
+            echo "::error::O keystore abriu, mas não contém o alias androiddebugkey. Aliases encontrados:"
+            printf '%s\n' "$KEYSTORE_INFO" | grep -E '^[^,]+, ' || true
             exit 1
           fi
 
