@@ -15,42 +15,64 @@
         localStorage.setItem(KEY, JSON.stringify(settings));
     }
     function refreshVoices() {
-        if (!("speechSynthesis" in window)) return [];
-        voices = window.speechSynthesis.getVoices().filter(v =>
-            /^pt[-_]BR$/i.test(v.lang || "") && v.localService !== false
-        );
+        if (!("speechSynthesis" in window)) {
+            voices = [];
+            return voices;
+        }
+        try {
+            const available = window.speechSynthesis.getVoices() || [];
+            // WebView pode informar vozes remotas ou variantes de idioma como pt_BR.
+            voices = available.filter(v => /^pt[-_]BR(?:[-_].*)?$/i.test(v.lang || ""));
+            if (!voices.length) {
+                voices = available.filter(v => /^pt(?:[-_].*)?$/i.test(v.lang || ""));
+            }
+        } catch (error) {
+            console.warn("Não foi possível listar as vozes do Android:", error);
+            voices = [];
+        }
         return voices;
     }
     function voiceFor(gender) {
         refreshVoices();
-        if (!voices.length) return null;
+        if (!voices.length) return null; // null deixa o Android escolher sua voz padrão.
         const patterns = gender === "female"
             ? /(female|femin|woman|mulher|maria|luciana|camila|francisca|helena|vitoria|brasilia.*f)/i
             : /(male|masc|man|homem|daniel|felipe|antonio|ricardo|joao|brasilia.*m)/i;
         return voices.find(v => patterns.test(v.name || "")) || voices[0];
     }
     function speak(text, preview = false) {
-        if (!("speechSynthesis" in window)) {
-            setStatus("A leitura em voz alta não está disponível neste Android.");
+        if (!("speechSynthesis" in window) || typeof window.SpeechSynthesisUtterance !== "function") {
+            setStatus("Este Android/WebView não disponibilizou o recurso de fala. Verifique se há um mecanismo de conversão de texto em voz instalado.");
             return false;
         }
+
+        const synth = window.speechSynthesis;
         const voice = voiceFor(settings.gender);
-        if (!voice) {
-            setStatus("Nenhuma voz offline em português (Brasil) foi encontrada. Instale uma voz pt-BR nas configurações de conversão de texto em fala do Android.");
+        try {
+            synth.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = "pt-BR";
+            // Não exigir uma voz listada: alguns WebViews só expõem a voz padrão do Android.
+            if (voice) utterance.voice = voice;
+            utterance.rate = Math.min(1.05, Math.max(0.82, Number(settings.rate) || 0.94));
+            utterance.pitch = settings.gender === "female" ? 1.08 : 0.91;
+            utterance.volume = 1;
+            utterance.onstart = () => setStatus("Reproduzindo com a voz disponível no Android" + (voice ? ": " + voice.name : "."));
+            utterance.onerror = event => {
+                greetedThisLaunch = false;
+                setStatus("O Android não conseguiu iniciar a fala (" + (event.error || "erro desconhecido") + "). Confira o mecanismo de texto em voz nas configurações do aparelho.");
+            };
+            utterance.onend = () => { if (preview) setStatus("Prévia concluída."); };
+            synth.speak(utterance);
+            // Alguns WebViews ficam pausados depois de uma fala cancelada anteriormente.
+            if (synth.paused && typeof synth.resume === "function") synth.resume();
+            setStatus(voice ? "Voz em português encontrada: " + voice.name : "Tentando usar a voz padrão de português do Android…");
+            return true;
+        } catch (error) {
+            console.error("Falha ao iniciar a saudação por voz:", error);
+            setStatus("Não foi possível iniciar a fala neste aparelho: " + error.message);
             return false;
         }
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = "pt-BR";
-        utterance.voice = voice;
-        utterance.rate = Math.min(1.05, Math.max(0.82, Number(settings.rate) || 0.94));
-        utterance.pitch = settings.gender === "female" ? 1.08 : 0.91;
-        utterance.volume = 0.92;
-        utterance.onstart = () => setStatus("Reproduzindo prévia com: " + voice.name);
-        utterance.onerror = event => setStatus("Não foi possível reproduzir a voz: " + event.error);
-        utterance.onend = () => { if (preview) setStatus("Prévia concluída."); };
-        window.speechSynthesis.speak(utterance);
-        return true;
     }
     function setStatus(message) {
         const el = $("orbia-voice-status");
@@ -98,8 +120,13 @@
             speak(phrase, true);
         });
         refreshVoices();
-        if (!voices.length) setStatus("Aguardando uma voz offline pt-BR do Android.");
-        else setStatus(voices.length + " voz(es) offline em português encontradas.");
+        if (!("speechSynthesis" in window)) {
+            setStatus("Este Android/WebView não oferece a API de fala. É necessária uma integração nativa com o mecanismo de voz.");
+        } else if (!voices.length) {
+            setStatus("Nenhuma voz listada pelo WebView. O ORBIA tentará usar a voz padrão do Android.");
+        } else {
+            setStatus(voices.length + " voz(es) em português encontradas.");
+        }
     }
     function makeGreeting() {
         const hour = new Date().getHours();
@@ -122,7 +149,7 @@
         window.setTimeout(() => {
             if (!settings.enabled || greetedThisLaunch) return;
             greetedThisLaunch = speak(makeGreeting());
-        }, 1400);
+        }, 1800);
     }
     function init() {
         mount();
