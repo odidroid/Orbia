@@ -865,3 +865,37 @@ body.dark-theme .sleep-hours strong {
         flex-direction: column;
     }
 }
+
+
+/* =====================================
+   ORBIA IA — EXPERIÊNCIA INICIAL
+===================================== */
+.orbia-ai-section { padding: 4px 0 28px; }
+.orbia-ai-heading { text-align: center; padding: 20px 8px 24px; }
+.orbia-ai-orbit { width: 66px; height: 66px; margin: 0 auto 17px; position: relative; display: grid; place-items: center; border: 1.5px solid var(--accent); border-radius: 50%; }
+.orbia-ai-orbit::before { content: ""; position: absolute; width: 43px; height: 43px; border: 1px solid color-mix(in srgb, var(--primary) 65%, transparent); border-radius: 50%; }
+.orbia-ai-orbit::after { content: ""; position: absolute; width: 9px; height: 9px; right: 5px; top: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 60%, transparent); }
+.orbia-ai-orbit span { width: 5px; height: 5px; border-radius: 50%; background: var(--primary); }
+.orbia-ai-eyebrow { color: var(--accent); font-size: 10px; font-weight: 800; letter-spacing: 1.6px; margin-bottom: 9px; }
+.orbia-ai-heading h2 { color: var(--text); font-size: 23px; margin-bottom: 9px; }
+.orbia-ai-intro { max-width: 330px; margin: 0 auto; color: var(--muted); font-size: 13px; line-height: 1.65; }
+.orbia-ai-install-card { padding: 21px; border: 1px solid var(--border); border-radius: 21px; background: var(--surface); box-shadow: var(--shadow); }
+.orbia-ai-card-icon { width: 39px; height: 39px; display: grid; place-items: center; margin-bottom: 14px; border-radius: 13px; background: color-mix(in srgb, var(--accent) 13%, transparent); color: var(--accent); font-size: 21px; }
+.orbia-ai-status { display: block; margin-bottom: 8px; color: var(--accent); font-size: 9px; font-weight: 800; letter-spacing: 1.2px; }
+.orbia-ai-install-card h3 { margin-bottom: 9px; color: var(--text); font-size: 18px; line-height: 1.35; }
+.orbia-ai-install-card > p { color: var(--muted); font-size: 12px; line-height: 1.65; }
+.orbia-ai-benefits { display: grid; gap: 12px; margin: 18px 0; padding: 0; list-style: none; }
+.orbia-ai-benefits li { display: flex; align-items: center; gap: 10px; color: var(--text); font-size: 12px; }
+.orbia-ai-benefits li span { width: 25px; height: 25px; display: grid; place-items: center; flex: 0 0 25px; border-radius: 9px; background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); }
+.orbia-ai-notice { padding: 12px; border-radius: 12px; background: var(--background); color: var(--muted); font-size: 11px; line-height: 1.55; }
+.orbia-ai-chat-preview { display: flex; gap: 11px; margin-top: 15px; padding: 16px; border: 1px solid var(--border); border-radius: 17px; background: var(--surface); }
+.orbia-ai-message-mark { width: 29px; height: 29px; display: grid; place-items: center; flex: 0 0 29px; border-radius: 10px; background: var(--primary); color: white; }
+.orbia-ai-chat-preview strong { display: block; margin: 2px 0 6px; color: var(--text); font-size: 12px; }
+.orbia-ai-chat-preview p { color: var(--muted); font-size: 11px; line-height: 1.6; }
+.orbia-ai-privacy-note { margin: 15px 5px 0; color: var(--muted); font-size: 10px; line-height: 1.6; text-align: center; }
+@media (max-width: 380px) {
+  .bottom-navigation { gap: 0; padding-left: 2px; padding-right: 2px; }
+  .bottom-navigation button span { font-size: 8px; }
+  .bottom-navigation button svg { width: 19px; height: 19px; }
+  .orbia-ai-install-card { padding: 17px; }
+}
