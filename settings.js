@@ -42,6 +42,7 @@ function generateBackupContent() {
         version: 1,
         exportedAt: new Date().toISOString(),
         profile: (() => { try { return JSON.parse(localStorage.getItem("orbia-profile") || "null"); } catch { return null; } })(),
+        voiceSettings: (() => { try { return JSON.parse(localStorage.getItem("orbia-voice-settings") || "null"); } catch { return null; } })(),
         activities: activities,
         habits: habits,
         goals: goals,
@@ -605,7 +606,7 @@ importBackupFile.addEventListener("change", async event => {
         const storageKeys = [
             "orbia-activities", "orbia-habits", "orbia-goals",
             "orbia-finance-records", "orbia-finance-budgets",
-            "orbia-sleep", "orbia-sleep-reminders", "orbia-profile"
+            "orbia-sleep", "orbia-sleep-reminders", "orbia-profile", "orbia-voice-settings"
         ];
         const previousStorage = Object.fromEntries(storageKeys.map(key => [key, localStorage.getItem(key)]));
         const previousState = { activities, habits, goals };
@@ -633,6 +634,7 @@ importBackupFile.addEventListener("change", async event => {
             if (window.OrbiaFinance && backup.finance) window.OrbiaFinance.restoreData(backup.finance);
             if (window.OrbiaSleep && Array.isArray(backup.sleep)) window.OrbiaSleep.restoreData(backup.sleep);
             if (backup.profile) localStorage.setItem("orbia-profile", JSON.stringify(backup.profile));
+            if (backup.voiceSettings) localStorage.setItem("orbia-voice-settings", JSON.stringify(backup.voiceSettings));
             if (window.OrbiaNotifications && backup.notificationSettings && window.OrbiaNotifications.restoreSettings) {
                 window.OrbiaNotifications.restoreSettings(backup.notificationSettings);
             }
