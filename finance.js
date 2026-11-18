@@ -66,7 +66,7 @@ const financeButton=document.getElementById("nav-finance");if(financeButton)fina
 }
 window.showPage=showFinanceAwarePage;
 showPage=showFinanceAwarePage;
-document.getElementById("nav-finance").addEventListener("click",()=>showFinanceAwarePage("finance"));
+document.getElementById("nav-finance").addEventListener("click",()=>window.showPage("finance"));
 window.OrbiaFinance={getBackupData:()=>({records,budgets}),restoreData:data=>{records=Array.isArray(data?.records)?data.records:[];budgets=data?.budgets&&typeof data.budgets==="object"&&!Array.isArray(data.budgets)?data.budgets:{};save();render()}};
 save();render();
 })();
