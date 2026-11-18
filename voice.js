@@ -133,6 +133,23 @@
             if (document.hidden && "speechSynthesis" in window) window.speechSynthesis.cancel();
         });
     }
+    window.OrbiaVoice = {
+        getSettings: () => ({ enabled: settings.enabled, gender: settings.gender, rate: settings.rate }),
+        restoreSettings: value => {
+            if (!value || typeof value !== "object") return;
+            settings = { ...defaults, ...value, greeted: "" };
+            if (!["female", "male"].includes(settings.gender)) settings.gender = "female";
+            settings.enabled = settings.enabled !== false;
+            settings.rate = Math.min(1.05, Math.max(0.82, Number(settings.rate) || 0.94));
+            save();
+            const enabled = $("orbia-voice-enabled");
+            const gender = $("orbia-voice-gender");
+            const rate = $("orbia-voice-rate");
+            if (enabled) enabled.value = String(settings.enabled);
+            if (gender) gender.value = settings.gender;
+            if (rate) rate.value = String(settings.rate);
+        }
+    };
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init, { once: true });
     else init();
 })();
