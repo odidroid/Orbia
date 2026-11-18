@@ -48,6 +48,7 @@
             heading.textContent = copy.title + (name ? ", " + name : "") + "?";
             subtitle.textContent = copy.subtitle;
         }
+        document.dispatchEvent(new Event("orbia:profile-ready"));
     }
 
     function mountStyles() {
