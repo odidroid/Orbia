@@ -141,8 +141,6 @@
                     try {
                         const current = await api.getStatus();
                         if (current.runtimeConnected) await api.unloadModel();
-                        const current = await api.getStatus();
-                        if (current.runtimeConnected) await api.unloadModel();
                         await api.deleteModel();
                         fill.style.width = "0";
                         progress.setAttribute("aria-valuenow", "0");
