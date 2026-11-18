@@ -33,6 +33,20 @@ jobs:
         with:
           packages: platform-tools
 
+      - name: Configurar assinatura fixa do ORBIA
+        env:
+          ORBIA_DEBUG_KEYSTORE_BASE64: ${{ secrets.ORBIA_DEBUG_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$ORBIA_DEBUG_KEYSTORE_BASE64" ]; then
+            echo "::error::Falta configurar o segredo ORBIA_DEBUG_KEYSTORE_BASE64 nas configurações do repositório. Consulte docs/ASSINATURA-ANDROID.md."
+            exit 1
+          fi
+          mkdir -p "$HOME/.android"
+          umask 077
+          printf '%s' "$ORBIA_DEBUG_KEYSTORE_BASE64" | base64 --decode > "$HOME/.android/debug.keystore"
+          keytool -list -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey >/dev/null
+          echo "Assinatura fixa do ORBIA configurada."
+
       - name: Instalar ferramentas Android
         run: |
           sdkmanager "platforms;android-36" "build-tools;36.0.0" "ndk;27.2.12479018" "cmake;3.22.1"
