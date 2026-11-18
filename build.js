@@ -12,6 +12,7 @@ async function build() {
         "style.css",
         "script.js",
         "settings.js",
+        "profile.js",
         "goals.js",
         "sleep.js",
         "finance.js",

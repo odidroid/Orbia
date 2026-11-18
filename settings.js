@@ -41,6 +41,7 @@ function generateBackupContent() {
         application: "ORBIA",
         version: 1,
         exportedAt: new Date().toISOString(),
+        profile: (() => { try { return JSON.parse(localStorage.getItem("orbia-profile") || "null"); } catch { return null; } })(),
         activities: activities,
         habits: habits,
         goals: goals,
@@ -396,6 +397,12 @@ function validateBackup(data) {
         )) return false;
     }
 
+    if (data.profile !== undefined && data.profile !== null) {
+        const profile = data.profile;
+        const validTime = value => typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+        if (!profile || typeof profile !== "object" || typeof profile.name !== "string" || !profile.name.trim() || typeof profile.birthDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(profile.birthDate) || !validTime(profile.bedtime) || !validTime(profile.waketime)) return false;
+    }
+
     if (data.notificationSettings !== undefined) {
         const settings = data.notificationSettings;
         if (!settings || typeof settings !== "object" || typeof settings.enabled !== "boolean" ||
@@ -598,7 +605,7 @@ importBackupFile.addEventListener("change", async event => {
         const storageKeys = [
             "orbia-activities", "orbia-habits", "orbia-goals",
             "orbia-finance-records", "orbia-finance-budgets",
-            "orbia-sleep", "orbia-sleep-reminders"
+            "orbia-sleep", "orbia-sleep-reminders", "orbia-profile"
         ];
         const previousStorage = Object.fromEntries(storageKeys.map(key => [key, localStorage.getItem(key)]));
         const previousState = { activities, habits, goals };
@@ -625,6 +632,7 @@ importBackupFile.addEventListener("change", async event => {
 
             if (window.OrbiaFinance && backup.finance) window.OrbiaFinance.restoreData(backup.finance);
             if (window.OrbiaSleep && Array.isArray(backup.sleep)) window.OrbiaSleep.restoreData(backup.sleep);
+            if (backup.profile) localStorage.setItem("orbia-profile", JSON.stringify(backup.profile));
             if (window.OrbiaNotifications && backup.notificationSettings && window.OrbiaNotifications.restoreSettings) {
                 window.OrbiaNotifications.restoreSettings(backup.notificationSettings);
             }
@@ -633,6 +641,7 @@ importBackupFile.addEventListener("change", async event => {
             renderHabits();
             renderWeek();
             renderGoals();
+            if (window.OrbiaProfile && window.OrbiaProfile.refresh) window.OrbiaProfile.refresh();
             backupStatus.textContent = "Backup importado com sucesso! Dados disponíveis foram restaurados.";
         } catch (restoreError) {
             activities = previousState.activities;
