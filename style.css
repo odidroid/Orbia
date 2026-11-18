@@ -899,3 +899,51 @@ body.dark-theme .sleep-hours strong {
   .bottom-navigation button svg { width: 19px; height: 19px; }
   .orbia-ai-install-card { padding: 17px; }
 }
+
+
+/* Controles do download do modelo local ORBIA IA */
+.orbia-ai-download-controls {
+    margin-top: 18px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border);
+}
+.orbia-ai-download-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--muted);
+    font-size: 12px;
+    margin-bottom: 9px;
+}
+.orbia-ai-download-meta strong {
+    color: var(--text);
+    white-space: nowrap;
+}
+.orbia-ai-download-track {
+    height: 9px;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 99px;
+    background: var(--background);
+    border: 1px solid var(--border);
+}
+.orbia-ai-download-fill {
+    height: 100%;
+    width: 0;
+    border-radius: inherit;
+    background: var(--accent);
+    transition: width .2s ease;
+}
+.orbia-ai-download-status {
+    min-height: 18px;
+    margin: 9px 0 3px;
+    color: var(--text);
+    font-size: 12px;
+    line-height: 1.5;
+}
+.orbia-ai-download-footnote {
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.5;
+}
