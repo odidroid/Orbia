@@ -19,7 +19,8 @@ async function build() {
         "splash.css",
         "splash.js",
         "sounds.js",
-        "voice.js"
+        "voice.js",
+        "orbia-ai.js"
     ];
 
     fs.mkdirSync(output, { recursive: true });
