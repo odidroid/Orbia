@@ -27,6 +27,9 @@
                 downloadAvailable: Boolean(status?.supported),
                 modelInstalled: Boolean(status?.modelInstalled),
                 runtimeConnected: Boolean(status?.runtimeReady),
+                runtimeAvailable: Boolean(status?.nativeRuntimeAvailable),
+                modelLoading: Boolean(status?.modelLoading),
+                generationInProgress: Boolean(status?.generationInProgress),
                 downloading: Boolean(status?.downloading),
                 mode: status?.mode || "native",
                 message: status?.message || ""
@@ -71,6 +74,11 @@
             const native = plugin();
             if (!native?.addListener) throw new Error("Eventos nativos não disponíveis.");
             return native.addListener("modelDownloadState", callback);
+        },
+        onGenerationToken: callback => {
+            const native = plugin();
+            if (!native?.addListener) throw new Error("Eventos nativos não disponíveis.");
+            return native.addListener("generationToken", callback);
         }
     };
     window.OrbiaAI = Object.freeze(api);
@@ -120,7 +128,7 @@
             if (event.state === "completed") {
                 fill.style.width = "100%";
                 progress.setAttribute("aria-valuenow", "100");
-                statusText.textContent = "Modelo baixado e verificado. A conversa ainda depende da integração do motor local.";
+                statusText.textContent = "Modelo baixado e verificado. Agora carregue-o para iniciar a conversa offline.";
                 button.textContent = "Modelo instalado";
                 button.disabled = true;
                 const removeButton = document.createElement("button");
@@ -230,5 +238,160 @@
         }).catch(() => {});
     }
 
-    if (plugin()) createDownloadControls();
+
+    function createRuntimeControls() {
+        const card = document.getElementById("orbia-ai-install-card");
+        if (!card || card.querySelector("#orbia-ai-load-button")) return;
+
+        const panel = document.createElement("div");
+        panel.className = "orbia-ai-runtime-controls";
+        panel.innerHTML = `
+            <p class="orbia-ai-runtime-status" aria-live="polite">Verificando o runtime local…</p>
+            <button type="button" class="settings-button" id="orbia-ai-load-button" disabled>Carregar IA neste celular</button>
+            <button type="button" class="settings-button secondary" id="orbia-ai-unload-button" hidden>Descarregar IA da memória</button>
+        `;
+        card.appendChild(panel);
+
+        const status = panel.querySelector(".orbia-ai-runtime-status");
+        const loadButton = panel.querySelector("#orbia-ai-load-button");
+        const unloadButton = panel.querySelector("#orbia-ai-unload-button");
+
+        async function refresh() {
+            const current = await api.getStatus();
+            loadButton.disabled = !current.modelInstalled || !current.runtimeAvailable || current.modelLoading;
+            loadButton.hidden = current.runtimeConnected;
+            unloadButton.hidden = !current.runtimeConnected;
+            if (current.runtimeConnected) status.textContent = "IA carregada e pronta. As respostas são processadas no próprio aparelho.";
+            else if (!current.runtimeAvailable) status.textContent = "Este APK não contém o runtime llama.cpp. Será necessário instalar uma versão atualizada.";
+            else if (current.modelInstalled) status.textContent = "Modelo instalado. Carregue-o para começar (contexto inicial de 1.024 tokens).";
+            else status.textContent = "Baixe o modelo para habilitar a conversa local.";
+        }
+
+        loadButton.addEventListener("click", async () => {
+            loadButton.disabled = true;
+            status.textContent = "Carregando o modelo na memória… isso pode levar alguns segundos.";
+            try {
+                await api.loadModel({ contextSize: 1024, threads: 3 });
+                status.textContent = "IA carregada. Pode começar a conversar offline.";
+                await refresh();
+                createChatControls();
+            } catch (error) {
+                status.textContent = error.message || "Não foi possível carregar o modelo. O aparelho pode estar sem memória.";
+                loadButton.disabled = false;
+            }
+        });
+
+        unloadButton.addEventListener("click", async () => {
+            unloadButton.disabled = true;
+            try {
+                await api.unloadModel();
+                status.textContent = "IA descarregada da memória.";
+                await refresh();
+            } catch (error) {
+                status.textContent = error.message || "Não foi possível descarregar a IA.";
+                unloadButton.disabled = false;
+            }
+        });
+
+        api.getStatus().then(current => {
+            if (current.modelInstalled) {
+                loadButton.disabled = !current.runtimeAvailable;
+                loadButton.hidden = current.runtimeConnected;
+                unloadButton.hidden = !current.runtimeConnected;
+                status.textContent = current.runtimeConnected
+                    ? "IA carregada e pronta neste aparelho."
+                    : (current.runtimeAvailable ? "Modelo instalado. Carregue-o para conversar." : "Runtime nativo ausente neste APK.");
+                if (current.runtimeConnected) createChatControls();
+            }
+        }).catch(() => {
+            status.textContent = "Não foi possível consultar o estado do runtime.";
+        });
+    }
+
+    function createChatControls() {
+        const card = document.getElementById("orbia-ai-install-card");
+        if (!card || card.querySelector("#orbia-ai-chat-form")) return;
+
+        const chat = document.createElement("div");
+        chat.className = "orbia-ai-local-chat";
+        chat.innerHTML = `
+            <div class="orbia-ai-local-chat-log" id="orbia-ai-chat-log" aria-live="polite">
+                <div class="orbia-ai-local-assistant"><strong>Órbia</strong><p>Estou pronta para conversar com você. Esta conversa é processada localmente neste aparelho.</p></div>
+            </div>
+            <form id="orbia-ai-chat-form">
+                <textarea id="orbia-ai-chat-input" rows="2" maxlength="3000" placeholder="Escreva sua mensagem…" aria-label="Sua mensagem"></textarea>
+                <div class="orbia-ai-chat-actions">
+                    <button type="button" class="settings-button secondary" id="orbia-ai-stop-button" hidden>Parar resposta</button>
+                    <button type="submit" class="settings-button" id="orbia-ai-send-button">Enviar</button>
+                </div>
+            </form>
+            <p class="orbia-ai-download-footnote">Modelo compacto de 0,5 bilhão de parâmetros. As respostas podem ser mais simples e lentas que serviços de IA na nuvem.</p>
+        `;
+        card.appendChild(chat);
+
+        const form = chat.querySelector("#orbia-ai-chat-form");
+        const input = chat.querySelector("#orbia-ai-chat-input");
+        const log = chat.querySelector("#orbia-ai-chat-log");
+        const send = chat.querySelector("#orbia-ai-send-button");
+        const stop = chat.querySelector("#orbia-ai-stop-button");
+        let activeAssistant = null;
+
+        function addMessage(kind, text) {
+            const bubble = document.createElement("div");
+            bubble.className = kind === "user" ? "orbia-ai-local-user" : "orbia-ai-local-assistant";
+            if (kind === "assistant") {
+                const heading = document.createElement("strong");
+                heading.textContent = "Órbia";
+                bubble.appendChild(heading);
+            }
+            const paragraph = document.createElement("p");
+            paragraph.textContent = text || "";
+            bubble.appendChild(paragraph);
+            log.appendChild(bubble);
+            log.scrollTop = log.scrollHeight;
+            return paragraph;
+        }
+
+        api.onGenerationToken(event => {
+            if (activeAssistant && typeof event.token === "string") {
+                activeAssistant.textContent += event.token;
+                log.scrollTop = log.scrollHeight;
+            }
+        }).catch(() => {});
+
+        form.addEventListener("submit", async event => {
+            event.preventDefault();
+            const prompt = input.value.trim();
+            if (!prompt || send.disabled) return;
+            addMessage("user", prompt);
+            input.value = "";
+            activeAssistant = addMessage("assistant", "");
+            send.disabled = true;
+            stop.hidden = false;
+            try {
+                const result = await api.generate({ prompt, maxTokens: 192, temperature: 0.7 });
+                if (!activeAssistant.textContent && result?.text) activeAssistant.textContent = result.text;
+                if (!activeAssistant.textContent) activeAssistant.textContent = "Resposta interrompida.";
+            } catch (error) {
+                activeAssistant.textContent = error.message || "Não consegui gerar uma resposta local.";
+            } finally {
+                send.disabled = false;
+                stop.hidden = true;
+                activeAssistant = null;
+                input.focus();
+            }
+        });
+
+        stop.addEventListener("click", async () => {
+            stop.disabled = true;
+            try { await api.stopGeneration(); }
+            catch (error) { status.textContent = error.message || "Não foi possível interromper a resposta."; }
+            stop.disabled = false;
+        });
+    }
+
+    if (plugin()) {
+        createDownloadControls();
+        createRuntimeControls();
+    }
 })();
