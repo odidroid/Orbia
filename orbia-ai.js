@@ -31,6 +31,9 @@
                 modelLoading: Boolean(status?.modelLoading),
                 generationInProgress: Boolean(status?.generationInProgress),
                 downloading: Boolean(status?.downloading),
+                downloadState: status?.downloadState || (status?.downloading ? "downloading" : "idle"),
+                downloadMessage: status?.downloadMessage || "",
+                downloadedBytes: Number(status?.downloadedBytes || 0),
                 mode: status?.mode || "native",
                 message: status?.message || ""
             };
@@ -125,13 +128,30 @@
         }
 
         function setState(event) {
-            if (event.state === "completed") {
+            if (event.state === "downloading") {
+                button.dataset.downloading = "true";
+                button.textContent = "Pausar download";
+                button.disabled = false;
+            } else if (event.state === "verifying") {
+                button.dataset.downloading = "true";
+                button.textContent = "Verificando modelo…";
+                button.disabled = true;
+                statusText.textContent = event.message || "Download concluído. Verificando a integridade do modelo…";
+            } else if (event.state === "installing") {
+                button.dataset.downloading = "true";
+                button.textContent = "Finalizando…";
+                button.disabled = true;
+                statusText.textContent = event.message || "Verificação concluída. Salvando o modelo…";
+            } else if (event.state === "completed") {
                 fill.style.width = "100%";
                 progress.setAttribute("aria-valuenow", "100");
                 statusText.textContent = "Modelo baixado e verificado. Agora carregue-o para iniciar a conversa offline.";
                 button.textContent = "Modelo instalado";
                 button.disabled = true;
+                button.dataset.downloading = "false";
+                if (controls.querySelector(".orbia-ai-remove-model")) return;
                 const removeButton = document.createElement("button");
+                removeButton.classList.add("orbia-ai-remove-model");
                 removeButton.type = "button";
                 removeButton.className = "settings-button secondary";
                 removeButton.textContent = "Remover modelo do aparelho";
@@ -155,10 +175,12 @@
                 });
                 controls.appendChild(removeButton);
             } else if (event.state === "cancelled") {
+                button.dataset.downloading = "false";
                 statusText.textContent = "Download pausado. Toque em continuar para retomar de onde parou.";
                 button.textContent = "Continuar download";
                 button.disabled = false;
             } else if (event.state === "error") {
+                button.dataset.downloading = "false";
                 statusText.textContent = "Não foi possível concluir: " + (event.message || "erro no download.");
                 button.textContent = "Tentar novamente";
                 button.disabled = false;
@@ -186,10 +208,15 @@
             button.disabled = true;
             statusText.textContent = "Iniciando download seguro…";
             try {
-                await api.startModelDownload();
+                const started = await api.startModelDownload();
+                if (started?.alreadyInstalled) {
+                    setState({ state: "completed" });
+                    return;
+                }
                 button.dataset.downloading = "true";
                 button.textContent = "Pausar download";
                 button.disabled = false;
+                pollDownloadStatus();
             } catch (error) {
                 statusText.textContent = error.message || "Não foi possível iniciar o download.";
                 button.textContent = "Tentar novamente";
@@ -197,11 +224,53 @@
             }
         });
 
+        let pollTimer = null;
+        let pollActive = false;
+        async function pollDownloadStatus() {
+            if (pollActive) return;
+            pollActive = true;
+            try {
+                const current = await api.getStatus();
+                const state = current.downloadState;
+                if (state === "verifying" || state === "installing") {
+                    setState({ state, message: current.downloadMessage });
+                } else if (state === "completed" || current.modelInstalled) {
+                    setState({ state: "completed" });
+                } else if (state === "error") {
+                    setState({ state: "error", message: current.downloadMessage });
+                } else if (state === "cancelled") {
+                    setState({ state: "cancelled" });
+                } else if (current.downloading) {
+                    button.dataset.downloading = "true";
+                    button.textContent = "Pausar download";
+                    button.disabled = false;
+                    if (current.downloadedBytes > 0) setProgress({
+                        downloadedBytes: current.downloadedBytes,
+                        totalBytes: 0,
+                        progress: -1
+                    });
+                }
+                if (current.downloading || state === "verifying" || state === "installing") {
+                    pollTimer = window.setTimeout(() => {
+                        pollActive = false;
+                        pollDownloadStatus();
+                    }, 1200);
+                } else {
+                    pollActive = false;
+                    if (pollTimer) window.clearTimeout(pollTimer);
+                }
+            } catch (_) {
+                pollActive = false;
+                pollTimer = window.setTimeout(pollDownloadStatus, 2500);
+            }
+        }
+
         api.onDownloadProgress(setProgress).catch(() => {});
         api.onDownloadState(event => {
             setState(event);
-            if (event.state !== "downloading") {
+            if (event.state === "completed" || event.state === "error" || event.state === "cancelled") {
                 button.dataset.downloading = "false";
+                pollDownloadStatus();
             }
         }).catch(() => {});
 
@@ -235,9 +304,12 @@
                     }
                 });
                 controls.appendChild(removeButton);
-            } else if (status.downloading) {
+            } else if (status.downloading || ["verifying", "installing"].includes(status.downloadState)) {
                 button.dataset.downloading = "true";
-                button.textContent = "Pausar download";
+                setState({ state: status.downloadState || "downloading", message: status.downloadMessage });
+                pollDownloadStatus();
+            } else if (status.downloadState === "error") {
+                setState({ state: "error", message: status.downloadMessage });
             }
         }).catch(() => {});
     }
