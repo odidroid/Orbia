@@ -43,20 +43,15 @@ A integração deve oferecer, no mínimo:
 
 ## Estado da implementação
 
-- Plugin Capacitor Android `OrbiaLocalAI` registrado no projeto gerado pelo workflow.
-- Download para `files/orbia-models`, dentro do armazenamento privado do aplicativo.
-- Progresso por eventos, pausa, retomada por HTTP Range e remoção do arquivo.
-- Validação do cabeçalho GGUF e SHA-256 antes de finalizar a instalação.
-- Modelo fixado na revisão `12145bd1d629190a4d44254073650877954d02c9` do repositório oficial.
-- Interface de instalação com confirmação explícita, indicação de tamanho e progresso.
+- Plugin Capacitor Android `OrbiaLocalAI` registrado automaticamente no projeto gerado pelo workflow.
+- Download privado com pausa, retomada HTTP Range, progresso e verificação SHA-256.
+- Build nativo ARM64 via Android NDK/CMake, usando `llama.cpp` fixado no commit `2cbfc3cf34f94c8ada67eb8766efe7374a3d2db6`.
+- Ponte JNI para carregar o GGUF, preparar prompt com o chat template do modelo e gerar tokens localmente.
+- Contexto inicial limitado a 1.024 tokens, máximo configurável de 2.048, lote 128 e CPU; limite de 192 tokens por resposta na interface.
+- Eventos de tokens para exibição incremental no WebView e ação para interromper a geração.
+- Controles para carregar/descarregar o modelo e conversa local sem enviar prompts para serviços remotos.
+- O instalador configura `externalNativeBuild` no Gradle e restringe o APK a `arm64-v8a`, arquitetura esperada no Redmi 14C.
 
-## Próximas etapas
+## Validação pendente
 
-1. Integrar llama.cpp via JNI/NDK para carregar o arquivo instalado.
-2. Implementar geração incremental, cancelamento e liberação de memória.
-3. Adicionar memória local e integração consentida com agenda, hábitos, metas e finanças.
-4. Validar compilação e desempenho/estabilidade no Redmi 14C real.
-
-## Limitação atual
-
-O download e a validação do arquivo estão implementados, mas o modelo ainda não é carregado e não gera respostas. `loadModel` e `generate` retornam uma mensagem explícita de runtime pendente. Não existe fallback para inferência remota.
+O código de integração foi adicionado, mas precisa passar pelo build Android/NDK do GitHub Actions e por teste no Redmi 14C. O carregamento pode falhar por pressão de memória; não aumentar o contexto antes de medir o consumo real. O app não usa inferência remota como fallback.
