@@ -1,5 +1,18 @@
 (() => {
+    function isFirstLaunch() {
+        try {
+            const profile = JSON.parse(localStorage.getItem("orbia-profile") || "null");
+            return !profile || profile.completed !== true;
+        } catch (error) {
+            return true;
+        }
+    }
+
     function createSplash() {
+        if (isFirstLaunch()) {
+            document.documentElement.classList.remove("orbia-loading");
+            return;
+        }
         if (document.getElementById("orbia-splash")) {
             return;
         }
