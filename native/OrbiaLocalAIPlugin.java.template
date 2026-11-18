@@ -1,0 +1,260 @@
+package __PACKAGE__;
+
+import android.os.Handler;
+import android.os.Looper;
+
+import com.getcapacitor.JSObject;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.RandomAccessFile;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+@CapacitorPlugin(name = "OrbiaLocalAI")
+public class OrbiaLocalAIPlugin extends Plugin {
+    private static final String MODEL_FILE = "qwen2.5-0.5b-instruct-q4_0.gguf";
+    private static final String MODEL_URL =
+        "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_0.gguf?download=true";
+    private static final long EXPECTED_APPROX_BYTES = 429L * 1024L * 1024L;
+
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final AtomicBoolean cancelDownload = new AtomicBoolean(false);
+    private volatile boolean downloading = false;
+
+    private File modelDirectory() {
+        File directory = new File(getContext().getFilesDir(), "orbia-models");
+        if (!directory.exists()) directory.mkdirs();
+        return directory;
+    }
+
+    private File modelFile() {
+        return new File(modelDirectory(), MODEL_FILE);
+    }
+
+    private File partialFile() {
+        return new File(modelDirectory(), MODEL_FILE + ".part");
+    }
+
+    @PluginMethod
+    public void getStatus(PluginCall call) {
+        JSObject result = new JSObject();
+        result.put("supported", true);
+        result.put("runtimeReady", false);
+        result.put("modelInstalled", modelFile().isFile() && modelFile().length() > 0);
+        result.put("downloading", downloading);
+        result.put("mode", "download-ready-runtime-pending");
+        result.put("message", "O download local está disponível; o mecanismo de inferência ainda não foi integrado.");
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void getModelInfo(PluginCall call) {
+        JSObject result = new JSObject();
+        result.put("name", "Qwen2.5-0.5B-Instruct");
+        result.put("fileName", MODEL_FILE);
+        result.put("format", "GGUF");
+        result.put("quantization", "Q4_0");
+        result.put("approximateBytes", EXPECTED_APPROX_BYTES);
+        result.put("downloadUrl", MODEL_URL);
+        result.put("installed", modelFile().isFile() && modelFile().length() > 0);
+        result.put("downloadInProgress", downloading);
+        result.put("resumableBytes", partialFile().isFile() ? partialFile().length() : 0);
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void startModelDownload(PluginCall call) {
+        if (downloading) {
+            call.reject("Já existe um download em andamento.");
+            return;
+        }
+        if (modelFile().isFile() && modelFile().length() > 0) {
+            JSObject result = new JSObject();
+            result.put("started", false);
+            result.put("alreadyInstalled", true);
+            call.resolve(result);
+            return;
+        }
+
+        cancelDownload.set(false);
+        downloading = true;
+        JSObject accepted = new JSObject();
+        accepted.put("started", true);
+        accepted.put("resuming", partialFile().isFile() && partialFile().length() > 0);
+        call.resolve(accepted);
+
+        executor.execute(this::downloadModel);
+    }
+
+    private void downloadModel() {
+        HttpURLConnection connection = null;
+        try {
+            File part = partialFile();
+            long offset = part.isFile() ? part.length() : 0L;
+            URL url = new URL(MODEL_URL);
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setConnectTimeout(20000);
+            connection.setReadTimeout(30000);
+            connection.setInstanceFollowRedirects(true);
+            connection.setRequestProperty("User-Agent", "ORBIA-Android/1.0");
+            if (offset > 0) connection.setRequestProperty("Range", "bytes=" + offset + "-");
+
+            int code = connection.getResponseCode();
+            if (offset > 0 && code == HttpURLConnection.HTTP_OK) {
+                // O servidor ignorou Range: reinicia o arquivo para não corromper o GGUF.
+                offset = 0;
+            } else if (offset > 0 && code != 206) {
+                throw new Exception("O servidor não aceitou a retomada (HTTP " + code + ").");
+            } else if (offset == 0 && code != HttpURLConnection.HTTP_OK) {
+                throw new Exception("Falha no servidor de download (HTTP " + code + ").");
+            }
+
+            long responseLength = connection.getContentLengthLong();
+            long total = responseLength > 0 ? responseLength + offset : -1L;
+            try (InputStream input = connection.getInputStream();
+                 FileOutputStream output = new FileOutputStream(part, offset > 0)) {
+                byte[] buffer = new byte[64 * 1024];
+                long downloaded = offset;
+                int read;
+                long lastEvent = 0;
+                while ((read = input.read(buffer)) != -1) {
+                    if (cancelDownload.get()) {
+                        emitDownloadState("cancelled", downloaded, total, "Download pausado. Você pode continuar depois.");
+                        return;
+                    }
+                    output.write(buffer, 0, read);
+                    downloaded += read;
+                    long now = System.currentTimeMillis();
+                    if (now - lastEvent >= 500) {
+                        emitProgress(downloaded, total);
+                        lastEvent = now;
+                    }
+                }
+                output.getFD().sync();
+                emitProgress(downloaded, total);
+            }
+
+            if (cancelDownload.get()) {
+                emitDownloadState("cancelled", part.length(), total, "Download pausado.");
+                return;
+            }
+
+            if (part.length() < 100L * 1024L * 1024L || !hasGgufMagic(part)) {
+                throw new Exception("O arquivo recebido não parece ser um modelo GGUF válido.");
+            }
+
+            File destination = modelFile();
+            if (destination.exists() && !destination.delete()) {
+                throw new Exception("Não foi possível substituir o modelo anterior.");
+            }
+            if (!part.renameTo(destination)) {
+                copyFile(part, destination);
+                if (!part.delete()) part.deleteOnExit();
+            }
+            emitDownloadState("completed", destination.length(), total, "Modelo baixado e salvo no armazenamento privado do ORBIA.");
+        } catch (Exception error) {
+            emitDownloadState("error", partialFile().isFile() ? partialFile().length() : 0L, -1L,
+                error.getMessage() == null ? "Falha no download do modelo." : error.getMessage());
+        } finally {
+            if (connection != null) connection.disconnect();
+            downloading = false;
+        }
+    }
+
+    private boolean hasGgufMagic(File file) {
+        try (FileInputStream input = new FileInputStream(file)) {
+            return input.read() == 'G' && input.read() == 'G' &&
+                   input.read() == 'U' && input.read() == 'F';
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private void copyFile(File source, File destination) throws Exception {
+        try (InputStream input = new FileInputStream(source);
+             FileOutputStream output = new FileOutputStream(destination)) {
+            byte[] buffer = new byte[64 * 1024];
+            int count;
+            while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
+            output.getFD().sync();
+        }
+    }
+
+    private void emitProgress(long downloaded, long total) {
+        JSObject event = new JSObject();
+        event.put("state", "downloading");
+        event.put("downloadedBytes", downloaded);
+        event.put("totalBytes", total);
+        event.put("progress", total > 0 ? Math.min(100, (downloaded * 100.0) / total) : -1);
+        notifyListeners("modelDownloadProgress", event);
+    }
+
+    private void emitDownloadState(String state, long downloaded, long total, String message) {
+        JSObject event = new JSObject();
+        event.put("state", state);
+        event.put("downloadedBytes", downloaded);
+        event.put("totalBytes", total);
+        event.put("progress", total > 0 ? Math.min(100, (downloaded * 100.0) / total) : -1);
+        event.put("message", message);
+        notifyListeners("modelDownloadState", event);
+    }
+
+    @PluginMethod
+    public void cancelModelDownload(PluginCall call) {
+        cancelDownload.set(true);
+        JSObject result = new JSObject();
+        result.put("cancellationRequested", true);
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void deleteModel(PluginCall call) {
+        if (downloading) {
+            call.reject("Pause ou cancele o download antes de remover o modelo.");
+            return;
+        }
+        boolean removed = !modelFile().exists() || modelFile().delete();
+        boolean partialRemoved = !partialFile().exists() || partialFile().delete();
+        if (!removed || !partialRemoved) {
+            call.reject("Não foi possível remover todos os arquivos do modelo.");
+            return;
+        }
+        JSObject result = new JSObject();
+        result.put("deleted", true);
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void loadModel(PluginCall call) {
+        call.reject("O modelo pode ser baixado, mas a inferência llama.cpp ainda não está incluída nesta versão.");
+    }
+
+    @PluginMethod
+    public void unloadModel(PluginCall call) {
+        JSObject result = new JSObject();
+        result.put("unloaded", true);
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void generate(PluginCall call) {
+        call.reject("A geração local ainda não está disponível: o runtime llama.cpp precisa ser integrado.");
+    }
+
+    @PluginMethod
+    public void stopGeneration(PluginCall call) {
+        JSObject result = new JSObject();
+        result.put("stopped", true);
+        call.resolve(result);
+    }
+}
