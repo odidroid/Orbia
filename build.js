@@ -19,7 +19,6 @@ async function build() {
         "splash.css",
         "splash.js",
         "sounds.js",
-        "voice.js",
         "orbia-ai.js"
     ];
 
@@ -83,8 +82,7 @@ async function build() {
         "notifications.js",
         "backup-exporter.js",
         "splash.js",
-        "sounds.js",
-        "voice.js"
+        "sounds.js"
     ];
 
     for (const script of scripts) {
