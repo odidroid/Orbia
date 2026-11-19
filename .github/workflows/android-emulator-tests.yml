@@ -30,8 +30,9 @@ jobs:
 
       - name: Preparar Android SDK
         uses: android-actions/setup-android@v4
-        with:
-          packages: platform-tools platforms;android-36 build-tools;36.0.0
+
+      - name: Instalar plataforma e ferramentas de compilação
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
 
       - name: Instalar dependências
         run: npm ci
@@ -88,7 +89,7 @@ jobs:
 
             adb logcat -d -t 5000 > test-results/logcat.txt
 
-            if grep -E "FATAL EXCEPTION|Process: com\\.orbia\\.app" test-results/logcat.txt | grep -q "FATAL EXCEPTION"; then
+            if grep -A 12 "FATAL EXCEPTION" test-results/logcat.txt | grep -q "Process: com\\.orbia\\.app"; then
               echo "::error::Foi detectada uma exceção fatal no log do Android."
               exit 1
             fi
