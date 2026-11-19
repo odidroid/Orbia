@@ -369,7 +369,7 @@
             loadButton.disabled = true;
             status.textContent = "Carregando o modelo na memória… isso pode levar alguns segundos.";
             try {
-                await api.loadModel({ contextSize: 512, threads: 2 });
+                await api.loadModel({ contextSize: 1024, threads: 3 });
                 status.textContent = "IA carregada. Pode começar a conversar offline.";
                 await refresh();
                 createChatControls();
