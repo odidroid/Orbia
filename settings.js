@@ -3,6 +3,9 @@
 // ORBIA — MÓDULO DE AJUSTES
 // =====================================
 
+// Remover preferência obsoleta da antiga saudação por voz.
+localStorage.removeItem("orbia-voice-settings");
+
 const settingsThemeButton = document.getElementById("settings-theme-button");
 const exportBackupButton = document.getElementById("export-backup");
 const importBackupButton = document.getElementById("import-backup-button");
