@@ -614,7 +614,8 @@
                 const count = Number(frequencyMatch[1]);
                 const name = habitMatch[1].replace(/\b[1-7]\s*(?:vezes?|x)\s*(?:por|na)\s*semana\b/i, "").replace(/[,.!?]+$/, "").trim();
                 if (!name) return null;
-                const days = count === 7 ? [0,1,2,3,4,5,6] : Array.from({length: count}, (_, index) => [1,3,5,2,4,6][index]);
+                const dayOptions = { 1: [1], 2: [1,4], 3: [1,3,5], 4: [1,2,4,5], 5: [1,2,3,4,5], 6: [1,2,3,4,5,6], 7: [0,1,2,3,4,5,6] };
+                const days = dayOptions[count];
                 return {
                     type: "createHabit",
                     data: { name, frequency: count === 7 ? "daily" : "custom", daysOfWeek: days, weeklyGoal: count },
