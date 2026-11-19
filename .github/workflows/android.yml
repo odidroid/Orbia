@@ -133,9 +133,12 @@ jobs:
 
           echo "Assinatura do APK confirmada: certificado corresponde à chave fixa do ORBIA."
 
+      - name: Renomear APK para Orbia.apk
+        run: mv android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/Orbia.apk
+
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
           name: ORBIA-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: android/app/build/outputs/apk/debug/Orbia.apk
           if-no-files-found: error
