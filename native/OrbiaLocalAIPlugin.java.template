@@ -2,6 +2,7 @@ package __PACKAGE__;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -43,7 +44,10 @@ public class OrbiaLocalAIPlugin extends Plugin {
     static {
         boolean loaded;
         try { System.loadLibrary("orbia_llama"); loaded = true; }
-        catch (Throwable error) { loaded = false; }
+        catch (Throwable error) {
+            loaded = false;
+            Log.e("OrbiaLocalAI", "Não foi possível carregar a biblioteca nativa orbia_llama.", error);
+        }
         NATIVE_LIBRARY_LOADED = loaded;
     }
 
@@ -346,8 +350,14 @@ public class OrbiaLocalAIPlugin extends Plugin {
         int threads = Math.max(2, Math.min(4, call.getInt("threads", 3)));
         executor.execute(() -> {
             String error;
-            try { error = nativeLoadModel(modelFile().getAbsolutePath(), contextSize, threads); }
-            catch (Throwable failure) { error = failure.getMessage(); }
+            try {
+                error = nativeLoadModel(modelFile().getAbsolutePath(), contextSize, threads);
+            } catch (Throwable failure) {
+                Log.e("OrbiaLocalAI", "Falha nativa durante loadModel().", failure);
+                error = failure.getMessage() == null
+                    ? failure.getClass().getSimpleName()
+                    : failure.getClass().getSimpleName() + ": " + failure.getMessage();
+            }
             final String message = error;
             mainHandler.post(() -> {
                 modelLoading = false;
@@ -410,6 +420,7 @@ public class OrbiaLocalAIPlugin extends Plugin {
                     mainHandler.post(() -> notifyListeners("generationToken", event));
                 });
             } catch (Throwable failure) {
+                Log.e("OrbiaLocalAI", "Falha nativa durante generate().", failure);
                 answer = null;
             }
             final String resultText = answer;
