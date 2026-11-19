@@ -23,7 +23,52 @@ const css = [
 ".orbia-select-option.is-selected{border-color:var(--accent);background:var(--background);color:var(--primary);font-weight:750}.orbia-select-option:disabled{opacity:.45}",
 "@media(min-width:600px){.orbia-picker-backdrop{align-items:center}}@media(prefers-reduced-motion:reduce){.orbia-picker-backdrop,.orbia-picker-panel{transition:none}}"
 ].join("");
-const style=document.createElement("style");style.textContent=css;document.head.appendChild(style);
+const style=document.createElement("style");style.textContent=css;
+/* Redesign consistente dos formulários e painéis do ORBIA. */
+style.textContent += `
+.modal,#habit-modal,#goal-modal{align-items:flex-end!important;justify-content:center!important;padding:12px 12px max(12px,env(safe-area-inset-bottom))!important;background:rgba(12,22,38,.62)!important;backdrop-filter:blur(5px)}
+.modal-content,.habit-modal-content,.goal-modal-content{width:100%!important;max-width:480px!important;max-height:min(88dvh,760px)!important;overflow-y:auto!important;overscroll-behavior:contain;padding:22px 18px max(20px,env(safe-area-inset-bottom))!important;border:1px solid var(--border)!important;border-radius:26px 26px 20px 20px!important;background:var(--surface)!important;color:var(--text)!important;box-shadow:0 22px 70px rgba(0,0,0,.24)!important;animation:orbiaFormEnter .22s ease-out both}
+@keyframes orbiaFormEnter{from{opacity:.6;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+.modal-content h2,.habit-modal-content h2,.goal-modal-content h2{margin:0 0 20px!important;padding-bottom:14px;border-bottom:1px solid var(--border);font-size:21px!important;font-weight:800;color:var(--primary)}
+.modal-content>label,.habit-modal-content>label,.goal-modal-content label,#finance-section form>label,#finance-section .finance-fields label,.sleep-field label{display:block;margin:13px 0 7px!important;color:var(--muted)!important;font-size:11px!important;font-weight:750!important;letter-spacing:.2px}
+.modal-content input:not([type=checkbox]):not([type=radio]):not([type=file]):not(.orbia-control-native),.modal-content textarea,.habit-modal-content input:not([type=checkbox]):not([type=radio]):not(.orbia-control-native),.habit-modal-content textarea,.goal-modal-content input:not([type=checkbox]):not([type=radio]):not(.orbia-control-native),.goal-modal-content textarea,#finance-section input:not([type=checkbox]):not([type=radio]):not(.orbia-control-native),#finance-section textarea,.sleep-field input{display:block;width:100%;min-height:48px;margin:0 0 12px!important;padding:13px 14px!important;border:1px solid var(--border)!important;border-radius:14px!important;background:var(--background)!important;color:var(--text)!important;font:500 14px Inter,Arial,sans-serif!important;box-shadow:none!important;outline:none}
+.modal-content input:focus,.modal-content textarea:focus,.habit-modal-content input:focus,.habit-modal-content textarea:focus,.goal-modal-content input:focus,.goal-modal-content textarea:focus,#finance-section input:focus,#finance-section textarea:focus,.sleep-field input:focus{border-color:var(--accent)!important;box-shadow:0 0 0 3px rgba(53,184,154,.13)!important}
+.modal-content input::placeholder,.habit-modal-content input::placeholder,.goal-modal-content input::placeholder,#finance-section input::placeholder,.goal-modal-content textarea::placeholder{color:var(--muted);opacity:.75}
+.modal-content .orbia-control-wrap,.habit-modal-content .orbia-control-wrap,.goal-modal-content .orbia-control-wrap,#finance-section .orbia-control-wrap{width:100%;margin:0 0 12px}
+.orbia-control-trigger{min-height:49px!important;border:1px solid var(--border)!important;border-radius:14px!important;background:var(--background)!important;color:var(--text)!important;box-shadow:none!important;font-size:14px!important}
+.orbia-control-trigger:active{border-color:var(--accent)!important}
+.modal-content .activity-repeat-panel,.habit-modal-content #custom-days{margin:3px 0 14px;padding:14px;border:1px solid var(--border);border-radius:15px;background:var(--background)}
+.activity-repeat-panel>span,.habit-field-title{display:block;margin-bottom:10px;color:var(--muted);font-size:11px;font-weight:750}
+.activity-repeat-days,.custom-days-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.activity-repeat-days label,.custom-days-grid label{display:flex;align-items:center;justify-content:center;gap:5px;min-height:38px;padding:7px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);font-size:11px;font-weight:700}
+.activity-repeat-days input,.custom-days-grid input{width:15px;height:15px;margin:0;accent-color:var(--accent)}
+.modal-actions,.goal-modal-actions,.modal-actions,.goal-modal-actions{display:flex;gap:9px;margin-top:20px;padding-top:14px;border-top:1px solid var(--border)}
+.modal-actions button,.goal-modal-actions button{flex:1;min-height:48px;padding:12px;border:1px solid var(--border);border-radius:14px;background:var(--background);color:var(--text);font-size:13px;font-weight:750}
+.modal-actions button:last-child,.goal-modal-actions button:last-child{border-color:var(--accent);background:var(--accent);color:white}
+#finance-section .finance-panel{border-radius:20px;padding:18px}
+#finance-section #finance-form{margin-top:14px}
+#finance-section .finance-fields{align-items:flex-start;gap:10px}
+#finance-section .finance-fields>div{min-width:0;flex:1}
+#finance-section .finance-month-control{flex:0 0 132px;min-width:0;overflow:hidden}
+#finance-section .finance-month-control .orbia-control-wrap{flex:1;width:auto;min-width:0;margin:0!important}
+#finance-section .finance-month-control .orbia-control-trigger{min-height:34px!important;padding:5px 7px!important;border:0!important;background:transparent!important;font-size:11px!important;box-shadow:none!important}
+#finance-section .finance-month-control input[type=month].orbia-control-native{position:absolute!important;clip:rect(0,0,0,0)!important;opacity:0!important}
+#finance-section .finance-type label{min-width:0}
+#finance-section .finance-type span{min-height:44px;display:grid;place-items:center;border-radius:13px}
+#finance-section .finance-recurring{display:flex;align-items:center;gap:9px;margin:12px 0 5px!important;padding:11px 12px;border:1px solid var(--border);border-radius:13px;background:var(--background);color:var(--text)!important;font-size:12px!important}
+#finance-section .finance-recurring input{width:18px;height:18px;min-height:0;margin:0!important;accent-color:var(--accent)}
+#finance-section .finance-submit,.sleep-save-button{min-height:49px;border-radius:14px;font-size:14px;font-weight:800}
+.sleep-form{padding:18px!important;border-radius:20px!important;background:var(--surface)!important}
+.sleep-form .orbia-control-wrap{margin:0 0 12px}
+.goal-form-row{gap:10px!important}
+.goal-form-row>div{min-width:0;flex:1}
+.finance-inline{align-items:center}
+.finance-inline input{min-width:0}
+@media(min-width:600px){.modal,#habit-modal,#goal-modal{align-items:center!important;padding:20px!important}.modal-content,.habit-modal-content,.goal-modal-content{border-radius:24px!important;max-height:86vh!important}}
+@media(prefers-reduced-motion:reduce){.modal-content,.habit-modal-content,.goal-modal-content{animation:none!important}}
+`;
+
+document.head.appendChild(style);
 const months=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
 const weekdays=["D","S","T","Q","Q","S","S"];
 const pad=n=>String(n).padStart(2,"0");
