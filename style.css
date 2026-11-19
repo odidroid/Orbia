@@ -29,6 +29,22 @@ body {
     transition: background 0.3s, color 0.3s;
 }
 
+/* Transição discreta entre as páginas principais */
+@keyframes pageTransitionEnter {
+    from { opacity: 0; transform: translate3d(0, 9px, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+main.page-transition-enter {
+    animation: pageTransitionEnter 200ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    main.page-transition-enter {
+        animation: none;
+    }
+}
+
 /* CABEÇALHO */
 
 .header {
