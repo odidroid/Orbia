@@ -169,7 +169,8 @@ body {
     font-size: 13px;
     font-weight: 700;
     color: var(--primary);
-    min-width: 48px;
+    min-width: 92px;
+    white-space: nowrap;
 }
 
 .activity-details {
@@ -349,6 +350,17 @@ body.dark-theme .sleep-hours strong {
 
 .modal-content input:focus {
     border-color: var(--accent);
+}
+
+.modal-content .activity-repeat-control {
+    width: 100%;
+    padding: 13px;
+    margin-bottom: 13px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--background);
+    color: var(--text);
+    font-size: 14px;
 }
 
 .modal-actions {
