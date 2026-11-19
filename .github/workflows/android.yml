@@ -77,7 +77,7 @@ jobs:
 
       - name: Instalar ferramentas Android
         run: |
-          sdkmanager "platforms;android-36" "build-tools;36.0.0" "ndk;27.2.12479018" "cmake;3.22.1"
+          sdkmanager "platforms;android-36" "build-tools;36.0.0"
 
       - name: Instalar dependências
         run: npm install
@@ -90,9 +90,6 @@ jobs:
 
       - name: Configurar permissões Android
         run: node patch-android-manifest.js
-
-      - name: Instalar plugin nativo da ORBIA IA
-        run: node install-local-ai-plugin.js
 
       - name: Sincronizar Capacitor
         run: npx cap sync android
