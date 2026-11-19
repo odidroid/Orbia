@@ -169,7 +169,9 @@ function fillActivityRepeatForm(activity) {
         input.checked = days.includes(Number(input.value));
     });
 
-    if (activity.recurrence.until) {
+    if (activity.recurrence.duration) {
+        activityRepeatDuration.value = String(activity.recurrence.duration);
+    } else if (activity.recurrence.until) {
         activityRepeatDuration.value = "custom";
         activityRepeatUntil.value = activity.recurrence.until;
     }
@@ -198,15 +200,15 @@ function buildActivityRecurrence(startDate) {
         if (!daysOfWeek.length) {
             throw new Error("Selecione pelo menos um dia da semana.");
         }
-        return { type, daysOfWeek, until };
+        return { type, daysOfWeek, until, duration };
     }
 
     if (type === "interval") {
         const interval = Math.max(2, Math.min(365, Number(activityRepeatInterval.value) || 2));
-        return { type, interval, until };
+        return { type, interval, until, duration };
     }
 
-    return { type: "daily", until };
+    return { type: "daily", until, duration };
 }
 
 saveActivities();
