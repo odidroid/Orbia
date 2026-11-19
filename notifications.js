@@ -142,15 +142,19 @@ import { LocalNotifications } from "@capacitor/local-notifications";
                 if (!item.recurrence && item.done) return;
 
                 const at = dateAt(date, item.time);
+                const reminderMinutes = Number.isInteger(item.reminderMinutes) &&
+                    item.reminderMinutes >= 0
+                    ? Math.min(item.reminderMinutes, 1440)
+                    : 5;
                 const key = item.recurrence
                     ? "activity:" + item.id + ":" + date
                     : "activity:" + item.id;
                 addNotification(
                     queue,
                     key,
-                    "Sua atividade está começando",
+                    reminderMinutes === 0 ? "Sua atividade está começando" : "Sua atividade está chegando",
                     item.name || "Confira sua agenda no ORBIA.",
-                    new Date(at.getTime() - 5 * 60000),
+                    new Date(at.getTime() - reminderMinutes * 60000),
                     "activity"
                 );
             });

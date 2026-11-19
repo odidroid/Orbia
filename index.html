@@ -390,8 +390,29 @@
                 placeholder="Nome da atividade"
             >
 
+            <label class="activity-repeat-label" for="activity-time">Horário de início</label>
             <input type="time" id="activity-time">
 
+            <label class="activity-repeat-label" for="activity-end-time">Horário de término (opcional)</label>
+            <input type="time" id="activity-end-time">
+
+            <label class="activity-repeat-label" for="activity-reminder">Avisar antes da atividade</label>
+            <select id="activity-reminder" class="activity-repeat-control">
+                <option value="0">Sem notificação</option>
+                <option value="5" selected>5 minutos antes</option>
+                <option value="10">10 minutos antes</option>
+                <option value="15">15 minutos antes</option>
+                <option value="30">30 minutos antes</option>
+                <option value="60">1 hora antes</option>
+                <option value="custom">Personalizar</option>
+            </select>
+
+            <div id="activity-reminder-custom-field" class="activity-repeat-panel" hidden>
+                <label for="activity-reminder-custom">Quantos minutos antes?</label>
+                <input type="number" id="activity-reminder-custom" min="1" max="1440" value="30">
+            </div>
+
+            <label class="activity-repeat-label" for="activity-date">Data</label>
             <input type="date" id="activity-date">
 
             <label class="activity-repeat-label" for="activity-repeat">Repetir atividade</label>
