@@ -636,6 +636,24 @@
                 };
             }
 
+            const completeHabitMatch = text.match(/^(?:marque|marcar|conclua|concluir)\\s+(?:o\\s+)?h[aá]bito\\s+(.+?)(?:\\s+como\\s+conclu[ií]do)?(?:\\s+hoje)?[.!]?$/i);
+            if (completeHabitMatch) {
+                return {
+                    type: "completeHabit",
+                    data: { name: completeHabitMatch[1].trim() },
+                    description: "Marcar o hábito \"" + completeHabitMatch[1].trim() + "\" como concluído hoje."
+                };
+            }
+
+            const progressMatch = text.match(/^(?:atualize|atualizar|registre|registrar)\\s+(?:o\\s+)?progresso\\s+(?:da\\s+)?meta\\s+(.+?)\\s+para\\s+(\\d+(?:[.,]\\d+)?)$/i);
+            if (progressMatch) {
+                return {
+                    type: "updateGoalProgress",
+                    data: { name: progressMatch[1].trim(), current: Number(progressMatch[2].replace(",", ".")) },
+                    description: "Atualizar o progresso da meta \"" + progressMatch[1].trim() + "\" para " + progressMatch[2] + "."
+                };
+            }
+
             const activityMatch = text.match(/^(?:por favor,?\s*)?(?:crie|criar|adicione|adicionar|agende|agendar)\s+(?:uma\s+)?atividade\s+(.+?)\s+(?:para|no dia|dia)\s+(\d{2})\/(\d{2})\/(\d{4})\s+às?\s+(\d{1,2}:\d{2})$/i);
             if (activityMatch) {
                 const [, name, day, month, year, rawTime] = activityMatch;
