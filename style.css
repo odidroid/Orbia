@@ -872,3 +872,79 @@ body.dark-theme .sleep-hours strong {
   .bottom-navigation button span { font-size: 8px; }
   .bottom-navigation button svg { width: 19px; height: 19px; }
 }
+
+
+/* REPETIÇÃO DE ATIVIDADES */
+.modal-content {
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+}
+
+.activity-repeat-label {
+    display: block;
+    margin: 5px 0 8px;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.modal-content .activity-repeat-control,
+.activity-repeat-panel input[type="number"],
+.activity-repeat-panel input[type="date"] {
+    width: 100%;
+    padding: 13px;
+    margin-bottom: 13px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--background);
+    color: var(--text);
+    font-size: 14px;
+}
+
+.activity-repeat-panel {
+    margin: 2px 0 14px;
+    padding: 13px;
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    background: var(--background);
+}
+
+.activity-repeat-panel[hidden] {
+    display: none;
+}
+
+.activity-repeat-panel > span,
+.activity-repeat-panel > label {
+    display: block;
+    margin-bottom: 10px;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.activity-repeat-days {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 11px 7px;
+}
+
+.activity-repeat-days label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--text);
+    font-size: 12px;
+}
+
+.activity-repeat-days input {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--accent);
+}
+
+@media (max-width: 380px) {
+    .activity-repeat-days {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
