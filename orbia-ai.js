@@ -91,6 +91,132 @@
     };
     window.OrbiaAI = Object.freeze(api);
 
+    const DIAGNOSTIC_KEY = "orbia.ai.diagnostics.v1";
+
+    function readDiagnostics() {
+        try { return JSON.parse(localStorage.getItem(DIAGNOSTIC_KEY) || "null"); }
+        catch (_) { return null; }
+    }
+
+    function saveDiagnostics(data) {
+        try {
+            data.updatedAt = new Date().toISOString();
+            localStorage.setItem(DIAGNOSTIC_KEY, JSON.stringify(data));
+        } catch (error) {
+            console.warn("[ORBIA IA] Não foi possível salvar o diagnóstico local.", error);
+        }
+    }
+
+    function createDiagnosticControls() {
+        const card = document.getElementById("orbia-ai-install-card");
+        if (!card || card.querySelector("#orbia-ai-diagnostic-panel")) return;
+
+        const panel = document.createElement("section");
+        panel.id = "orbia-ai-diagnostic-panel";
+        panel.className = "orbia-ai-runtime-controls";
+        panel.hidden = true;
+        panel.innerHTML = `
+            <p><strong>Diagnóstico da IA</strong></p>
+            <p id="orbia-ai-diagnostic-message" aria-live="polite"></p>
+            <button type="button" class="settings-button secondary" id="orbia-ai-copy-diagnostic">Copiar diagnóstico</button>
+            <button type="button" class="settings-button secondary" id="orbia-ai-clear-diagnostic">Limpar diagnóstico</button>
+        `;
+        card.appendChild(panel);
+
+        const message = panel.querySelector("#orbia-ai-diagnostic-message");
+        const copy = panel.querySelector("#orbia-ai-copy-diagnostic");
+        const clear = panel.querySelector("#orbia-ai-clear-diagnostic");
+
+        function refresh() {
+            const data = readDiagnostics();
+            if (!data || (!data.pending && !data.error)) {
+                panel.hidden = true;
+                return;
+            }
+            panel.hidden = false;
+            if (data.pending) {
+                message.textContent = "A sessão anterior foi interrompida durante: " +
+                    (data.stage || "uma operação da IA") +
+                    ". O aplicativo foi fechado ou reiniciado antes de concluir.";
+            } else {
+                message.textContent = "Última falha registrada: " + (data.error || "erro sem detalhes") +
+                    (data.stage ? " · Etapa: " + data.stage : "");
+            }
+        }
+
+        copy.addEventListener("click", async () => {
+            const report = JSON.stringify(readDiagnostics() || {}, null, 2);
+            try {
+                await navigator.clipboard.writeText(report);
+                copy.textContent = "Diagnóstico copiado";
+            } catch (_) {
+                const field = document.createElement("textarea");
+                field.value = report;
+                panel.appendChild(field);
+                field.select();
+                try {
+                    document.execCommand("copy");
+                    copy.textContent = "Diagnóstico copiado";
+                } catch (error) {
+                    message.textContent = report;
+                }
+                field.remove();
+            }
+        });
+
+        clear.addEventListener("click", () => {
+            try { localStorage.removeItem(DIAGNOSTIC_KEY); } catch (_) {}
+            copy.textContent = "Copiar diagnóstico";
+            refresh();
+        });
+
+        window.addEventListener("error", event => {
+            const previous = readDiagnostics() || {};
+            saveDiagnostics({
+                pending: false,
+                stage: "JavaScript",
+                error: event.message || "Erro JavaScript não identificado",
+                source: event.filename || "",
+                line: event.lineno || 0,
+                previousStage: previous.stage || ""
+            });
+            refresh();
+        });
+
+        window.addEventListener("unhandledrejection", event => {
+            const previous = readDiagnostics() || {};
+            const reason = event.reason;
+            saveDiagnostics({
+                pending: false,
+                stage: "Promise",
+                error: reason?.message || String(reason || "Falha assíncrona sem detalhes"),
+                previousStage: previous.stage || ""
+            });
+            refresh();
+        });
+
+        refresh();
+        return { refresh };
+    }
+
+    const diagnosticUI = createDiagnosticControls();
+
+    function markDiagnostic(stage) {
+        const previous = readDiagnostics() || {};
+        saveDiagnostics({
+            pending: true,
+            stage,
+            startedAt: new Date().toISOString(),
+            lastError: previous.error || ""
+        });
+        diagnosticUI?.refresh();
+    }
+
+    function finishDiagnostic() {
+        try { localStorage.removeItem(DIAGNOSTIC_KEY); } catch (_) {}
+        diagnosticUI?.refresh();
+    }
+
     function createDownloadControls() {
         const card = document.getElementById("orbia-ai-install-card");
         if (!card || card.querySelector("#orbia-ai-download-button")) return;
@@ -480,11 +606,19 @@
             try {
                 const recentContext = conversationHistory.slice(-3).map(turn => `Usuário: ${turn.user}\\nÓrbia: ${turn.assistant}`).join("\\n");
                 const fullPrompt = recentContext ? `${recentContext}\\nUsuário: ${prompt}\\nÓrbia:` : prompt;
+                markDiagnostic("geração da resposta local");
                 const result = await api.generate({ prompt: fullPrompt, maxTokens: 192, temperature: 0.7 });
+                finishDiagnostic();
                 if (!activeAssistant.textContent && result?.text) activeAssistant.textContent = result.text;
                 if (!activeAssistant.textContent) activeAssistant.textContent = "Resposta interrompida.";
                 else conversationHistory.push({ user: prompt, assistant: activeAssistant.textContent });
             } catch (error) {
+                saveDiagnostics({
+                    pending: false,
+                    stage: "geração da resposta local",
+                    error: error?.message || String(error || "Falha sem detalhes")
+                });
+                diagnosticUI?.refresh();
                 activeAssistant.textContent = error.message || "Não consegui gerar uma resposta local.";
             } finally {
                 send.disabled = false;
