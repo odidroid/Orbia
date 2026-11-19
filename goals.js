@@ -1036,6 +1036,54 @@ function renderGoals() {
 
 
 // =========================================
+// API LOCAL DE METAS PARA A ÓRBIA IA
+// =========================================
+
+window.OrbiaAppActions = window.OrbiaAppActions || {};
+Object.assign(window.OrbiaAppActions, {
+    getGoals() {
+        return goals.map(goal => ({ ...goal }));
+    },
+
+    createGoal(data = {}) {
+        const name = String(data.name || "").trim();
+        const target = Number(data.target);
+        const current = Number(data.current || 0);
+        const unit = String(data.unit || "unidades").trim().slice(0, 20) || "unidades";
+        const deadline = String(data.deadline || "");
+        if (!name || name.length > 60) throw new Error("Informe um nome de meta com até 60 caracteres.");
+        if (!Number.isFinite(target) || target <= 0) throw new Error("O objetivo da meta precisa ser maior que zero.");
+        if (!Number.isFinite(current) || current < 0) throw new Error("O progresso não pode ser negativo.");
+        if (deadline && !/^\d{4}-\d{2}-\d{2}$/.test(deadline)) throw new Error("Informe um prazo válido.");
+        const goal = {
+            id: Date.now(),
+            name,
+            description: String(data.description || "").slice(0, 180),
+            target,
+            unit,
+            current,
+            deadline,
+            createdAt: new Date().toISOString()
+        };
+        goals.push(goal);
+        saveGoals();
+        renderGoals();
+        return { ...goal };
+    },
+
+    updateGoalProgress(name, current) {
+        const goal = goals.find(item => item.name.toLocaleLowerCase() === String(name || "").trim().toLocaleLowerCase());
+        if (!goal) throw new Error("Não encontrei essa meta.");
+        const value = Number(current);
+        if (!Number.isFinite(value) || value < 0) throw new Error("Informe um progresso válido.");
+        goal.current = value;
+        saveGoals();
+        renderGoals();
+        return { name: goal.name, current: goal.current, target: goal.target, unit: goal.unit };
+    }
+});
+
+// =========================================
 // INICIALIZAÇÃO
 // =========================================
 
