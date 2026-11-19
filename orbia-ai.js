@@ -587,12 +587,39 @@
             return paragraph;
         }
 
-        api.onGenerationToken(event => {
-            if (activeAssistant && typeof event.token === "string") {
-                activeAssistant.textContent += event.token;
-                log.scrollTop = log.scrollHeight;
+        // Capacitor listener registration may return either a Promise or a
+        // listener handle, depending on the bridge/runtime version.
+        try {
+            const generationListener = api.onGenerationToken(event => {
+                if (activeAssistant && typeof event.token === "string") {
+                    activeAssistant.textContent += event.token;
+                    log.scrollTop = log.scrollHeight;
+                }
+            });
+            if (generationListener && typeof generationListener.catch === "function") {
+                generationListener.catch(error => {
+                    const previous = readDiagnostics() || {};
+                    saveDiagnostics({
+                        pending: false,
+                        stage: "registro do evento de geração",
+                        error: error?.message || String(error || "Não foi possível registrar o evento generationToken."),
+                        previousStage: previous.stage || ""
+                    });
+                    diagnosticUI?.refresh();
+                    console.warn("[ORBIA IA] Falha ao registrar generationToken.", error);
+                });
             }
-        }).catch(() => {});
+        } catch (error) {
+            const previous = readDiagnostics() || {};
+            saveDiagnostics({
+                pending: false,
+                stage: "registro do evento de geração",
+                error: error?.message || String(error || "Não foi possível registrar o evento generationToken."),
+                previousStage: previous.stage || ""
+            });
+            diagnosticUI?.refresh();
+            console.warn("[ORBIA IA] Falha ao registrar generationToken.", error);
+        }
 
         form.addEventListener("submit", async event => {
             event.preventDefault();
