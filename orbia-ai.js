@@ -587,6 +587,113 @@
             return paragraph;
         }
 
+        function getAppContext() {
+            const app = window.OrbiaAppActions;
+            if (!app) return "Os módulos de Metas, Hábitos e Agenda ainda não estão disponíveis.";
+            try {
+                return JSON.stringify({
+                    metas: app.getGoals?.() || [],
+                    habitos: (app.getHabits?.() || []).map(item => ({
+                        name: item.name, frequency: item.frequency,
+                        weeklyGoal: item.weeklyGoal, completedDates: item.completedDates
+                    })),
+                    atividades: (app.getActivities?.() || []).slice(-12)
+                }).slice(0, 3500);
+            } catch (error) {
+                console.warn("[ORBIA IA] Não foi possível montar o contexto do aplicativo.", error);
+                return "Não foi possível consultar os dados do aplicativo.";
+            }
+        }
+
+        function parseAppAction(message) {
+            const text = String(message || "").trim();
+            const habitMatch = text.match(/^(?:por favor,?\s*)?(?:quero\s+)?(?:crie|criar|adicione|adicionar|cadastre|cadastrar)\s+(?:um\s+)?h[aá]bito(?:\s+de)?\s+(.+)$/i);
+            if (habitMatch) {
+                const frequencyMatch = habitMatch[1].match(/\b([1-7])\s*(?:vezes?|x)\s*(?:por|na)\s*semana\b/i);
+                if (!frequencyMatch) return null;
+                const count = Number(frequencyMatch[1]);
+                const name = habitMatch[1].replace(/\b[1-7]\s*(?:vezes?|x)\s*(?:por|na)\s*semana\b/i, "").replace(/[,.!?]+$/, "").trim();
+                if (!name) return null;
+                const days = count === 7 ? [0,1,2,3,4,5,6] : Array.from({length: count}, (_, index) => [1,3,5,2,4,6][index]);
+                return {
+                    type: "createHabit",
+                    data: { name, frequency: count === 7 ? "daily" : "custom", daysOfWeek: days, weeklyGoal: count },
+                    description: "Criar o hábito \"" + name + "\" " + count + " vez(es) por semana. Dias sugeridos: " + days.map(day => ["domingo","segunda","terça","quarta","quinta","sexta","sábado"][day]).join(", ")
+                };
+            }
+
+            const goalMatch = text.match(/^(?:por favor,?\s*)?(?:quero\s+)?(?:crie|criar|adicione|adicionar|cadastre|cadastrar)\s+(?:uma\s+)?meta\s+(?:de\s+)?(.+)$/i);
+            if (goalMatch) {
+                const amount = goalMatch[1].match(/\b(\d+(?:[.,]\d+)?)\s*(\p{L}+)?/u);
+                if (!amount) return null;
+                const target = Number(amount[1].replace(",", "."));
+                const unit = amount[2] || "unidades";
+                const name = goalMatch[1].trim();
+                return {
+                    type: "createGoal",
+                    data: { name, target, unit },
+                    description: "Criar a meta \"" + name + "\" com objetivo de " + target + " " + unit + "."
+                };
+            }
+
+            const activityMatch = text.match(/^(?:por favor,?\s*)?(?:crie|criar|adicione|adicionar|agende|agendar)\s+(?:uma\s+)?atividade\s+(.+?)\s+(?:para|no dia|dia)\s+(\d{2})\/(\d{2})\/(\d{4})\s+às?\s+(\d{1,2}:\d{2})$/i);
+            if (activityMatch) {
+                const [, name, day, month, year, rawTime] = activityMatch;
+                const date = year + "-" + month + "-" + day;
+                const time = rawTime.padStart(5, "0");
+                return {
+                    type: "createActivity",
+                    data: { name: name.trim(), date, time },
+                    description: "Adicionar a atividade \"" + name.trim() + "\" em " + day + "/" + month + "/" + year + " às " + time + "."
+                };
+            }
+
+            return null;
+        }
+
+        function showActionConfirmation(action) {
+            const paragraph = addMessage("assistant", "Posso fazer isso no seu Órbia? Confira os detalhes:");
+            const bubble = paragraph.parentElement;
+            const details = document.createElement("p");
+            details.textContent = action.description;
+            bubble.appendChild(details);
+
+            const actions = document.createElement("div");
+            actions.className = "orbia-ai-chat-actions";
+            const confirm = document.createElement("button");
+            confirm.type = "button";
+            confirm.className = "settings-button";
+            confirm.textContent = "Confirmar e salvar";
+            const cancel = document.createElement("button");
+            cancel.type = "button";
+            cancel.className = "settings-button secondary";
+            cancel.textContent = "Cancelar";
+            actions.append(confirm, cancel);
+            bubble.appendChild(actions);
+
+            confirm.addEventListener("click", () => {
+                confirm.disabled = true;
+                cancel.disabled = true;
+                try {
+                    const app = window.OrbiaAppActions;
+                    const result = app[action.type](action.data);
+                    details.textContent = "Pronto! Salvei no Órbia: " +
+                        (result.name || result.title || action.data.name || "ação concluída") + ".";
+                    confirm.remove();
+                    cancel.remove();
+                } catch (error) {
+                    details.textContent = "Não consegui salvar: " + (error.message || String(error));
+                    confirm.disabled = false;
+                    cancel.disabled = false;
+                }
+            });
+            cancel.addEventListener("click", () => {
+                details.textContent = "Tudo bem. Não fiz nenhuma alteração.";
+                actions.remove();
+            });
+            log.scrollTop = log.scrollHeight;
+        }
+
         // Capacitor listener registration may return either a Promise or a
         // listener handle, depending on the bridge/runtime version.
         try {
@@ -627,12 +734,21 @@
             if (!prompt || send.disabled) return;
             addMessage("user", prompt);
             input.value = "";
+
+            const proposedAction = parseAppAction(prompt);
+            if (proposedAction && window.OrbiaAppActions) {
+                showActionConfirmation(proposedAction);
+                return;
+            }
+
             activeAssistant = addMessage("assistant", "");
             send.disabled = true;
             stop.hidden = false;
             try {
                 const recentContext = conversationHistory.slice(-3).map(turn => `Usuário: ${turn.user}\\nÓrbia: ${turn.assistant}`).join("\\n");
-                const fullPrompt = recentContext ? `${recentContext}\\nUsuário: ${prompt}\\nÓrbia:` : prompt;
+                const appContext = getAppContext();
+                const instructions = "Você é a Órbia, companheira, mentora e assistente pessoal. Responda em português brasileiro, com acolhimento e objetividade. Ajude a pessoa a definir metas, hábitos e organizar a agenda. Use os dados reais abaixo para responder perguntas sobre o aplicativo. Nunca diga que criou, alterou ou concluiu algo: ações só são executadas quando o aplicativo apresenta uma confirmação explícita. Se faltarem dados, pergunte.\nDados atuais do Órbia: " + appContext;
+                const fullPrompt = instructions + "\\n" + (recentContext ? recentContext + "\\n" : "") + "Usuário: " + prompt + "\\nÓrbia:";
                 markDiagnostic("geração da resposta local");
                 const result = await api.generate({ prompt: fullPrompt, maxTokens: 192, temperature: 0.7 });
                 finishDiagnostic();
