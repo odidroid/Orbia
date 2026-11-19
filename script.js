@@ -26,6 +26,11 @@ let editingActivityId = null;
 const activityName = document.getElementById("activity-name");
 const activityTime = document.getElementById("activity-time");
 const activityDate = document.getElementById("activity-date");
+const activityRepeat = document.getElementById("activity-repeat");
+const activityRepeatInterval = document.getElementById("activity-repeat-interval");
+const activityRepeatDuration = document.getElementById("activity-repeat-duration");
+const activityRepeatUntil = document.getElementById("activity-repeat-until");
+const repeatWeekdays = Array.from(document.querySelectorAll(".activity-repeat-day"));
 
 const saveButton = document.getElementById("save-activity");
 const cancelButton = document.getElementById("cancel-activity");
@@ -92,6 +97,121 @@ function saveActivities() {
         JSON.stringify(activities)
     );
     window.dispatchEvent(new Event("orbia:data-changed"));
+}
+
+function dateDifferenceInDays(startDate, endDate) {
+    const start = new Date(startDate + "T12:00:00");
+    const end = new Date(endDate + "T12:00:00");
+    return Math.round((end - start) / 86400000);
+}
+
+function isActivityScheduled(activity, dateString) {
+    if (dateString < activity.date) return false;
+    if (!activity.recurrence) return dateString === activity.date;
+
+    const rule = activity.recurrence;
+    if (rule.until && dateString > rule.until) return false;
+
+    const elapsedDays = dateDifferenceInDays(activity.date, dateString);
+
+    if (rule.type === "daily") return true;
+    if (rule.type === "weekly") {
+        const weekday = new Date(dateString + "T12:00:00").getDay();
+        return Array.isArray(rule.daysOfWeek) && rule.daysOfWeek.includes(weekday);
+    }
+    if (rule.type === "interval") {
+        return elapsedDays % Math.max(1, Number(rule.interval) || 1) === 0;
+    }
+
+    return false;
+}
+
+function isActivityDone(activity, dateString) {
+    if (!activity.recurrence) return Boolean(activity.done);
+    return Array.isArray(activity.doneDates) && activity.doneDates.includes(dateString);
+}
+
+function getMonthEndDate(dateString, months) {
+    const date = new Date(dateString + "T12:00:00");
+    const originalDay = date.getDate();
+    date.setDate(1);
+    date.setMonth(date.getMonth() + months);
+    const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+    date.setDate(Math.min(originalDay, lastDay));
+    date.setDate(date.getDate() - 1);
+    return getLocalDate(date);
+}
+
+function updateRepeatFields() {
+    const type = activityRepeat.value;
+    document.getElementById("activity-repeat-weekdays").hidden = type !== "weekly";
+    document.getElementById("activity-repeat-interval-field").hidden = type !== "interval";
+    document.getElementById("activity-repeat-until-field").hidden = activityRepeatDuration.value !== "custom";
+}
+
+function resetActivityRepeatForm() {
+    activityRepeat.value = "none";
+    activityRepeatInterval.value = "2";
+    activityRepeatDuration.value = "never";
+    activityRepeatUntil.value = "";
+    repeatWeekdays.forEach(input => { input.checked = false; });
+    updateRepeatFields();
+}
+
+function fillActivityRepeatForm(activity) {
+    resetActivityRepeatForm();
+    if (!activity.recurrence) return;
+
+    activityRepeat.value = activity.recurrence.type;
+    activityRepeatInterval.value = String(activity.recurrence.interval || 2);
+    const days = activity.recurrence.daysOfWeek || [];
+    repeatWeekdays.forEach(input => {
+        input.checked = days.includes(Number(input.value));
+    });
+
+    if (activity.recurrence.duration) {
+        activityRepeatDuration.value = String(activity.recurrence.duration);
+        if (activity.recurrence.duration === "custom") {
+            activityRepeatUntil.value = activity.recurrence.until || "";
+        }
+    } else if (activity.recurrence.until) {
+        activityRepeatDuration.value = "custom";
+        activityRepeatUntil.value = activity.recurrence.until;
+    }
+    updateRepeatFields();
+}
+
+function buildActivityRecurrence(startDate) {
+    const type = activityRepeat.value;
+    if (type === "none") return null;
+
+    let until = null;
+    const duration = activityRepeatDuration.value;
+    if (duration === "custom") {
+        until = activityRepeatUntil.value;
+        if (!until || until < startDate) {
+            throw new Error("Escolha uma data final igual ou posterior ao início.");
+        }
+    } else if (duration !== "never") {
+        until = getMonthEndDate(startDate, Number(duration));
+    }
+
+    if (type === "weekly") {
+        const daysOfWeek = repeatWeekdays
+            .filter(input => input.checked)
+            .map(input => Number(input.value));
+        if (!daysOfWeek.length) {
+            throw new Error("Selecione pelo menos um dia da semana.");
+        }
+        return { type, daysOfWeek, until, duration };
+    }
+
+    if (type === "interval") {
+        const interval = Math.max(2, Math.min(365, Number(activityRepeatInterval.value) || 2));
+        return { type, interval, until, duration };
+    }
+
+    return { type: "daily", until, duration };
 }
 
 saveActivities();
@@ -286,10 +406,16 @@ function renderActivities() {
     activityList.innerHTML = "";
 
     const dailyActivities = activities
-        .filter(activity => activity.date === selectedDate)
+        .filter(activity => isActivityScheduled(activity, selectedDate))
+        .map(activity => ({
+            ...activity,
+            occurrenceDate: selectedDate,
+            done: isActivityDone(activity, selectedDate)
+        }))
         .sort((a, b) => a.time.localeCompare(b.time));
 
     dailyActivities.forEach(activity => {
+        const sourceActivity = activities.find(item => item.id === activity.id);
         const card = document.createElement("div");
         card.className = "activity-card";
 
@@ -314,7 +440,13 @@ function renderActivities() {
         checkbox.checked = activity.done;
 
         checkbox.addEventListener("change", () => {
-            activity.done = checkbox.checked;
+            if (sourceActivity.recurrence) {
+                if (!Array.isArray(sourceActivity.doneDates)) sourceActivity.doneDates = [];
+                sourceActivity.doneDates = sourceActivity.doneDates.filter(date => date !== selectedDate);
+                if (checkbox.checked) sourceActivity.doneDates.push(selectedDate);
+            } else {
+                sourceActivity.done = checkbox.checked;
+            }
             saveActivities();
             renderActivities();
         });
@@ -332,6 +464,7 @@ function renderActivities() {
             activityName.value = activity.name;
             activityTime.value = activity.time;
             activityDate.value = activity.date;
+            fillActivityRepeatForm(sourceActivity);
 
             modalTitle.textContent = "Editar atividade";
             saveButton.textContent = "Salvar alterações";
@@ -377,13 +510,13 @@ function renderActivities() {
 
 function updateProgress() {
     const dailyActivities = activities.filter(
-        activity => activity.date === selectedDate
+        activity => isActivityScheduled(activity, selectedDate)
     );
 
     const total = dailyActivities.length;
 
     const completed = dailyActivities.filter(
-        activity => activity.done
+        activity => isActivityDone(activity, selectedDate)
     ).length;
 
     const percentage = total === 0
@@ -406,6 +539,7 @@ addButton.addEventListener("click", () => {
     activityName.value = "";
     activityTime.value = "";
     activityDate.value = selectedDate;
+    resetActivityRepeatForm();
 
     modalTitle.textContent = "Nova atividade";
     saveButton.textContent = "Salvar";
@@ -417,7 +551,12 @@ addButton.addEventListener("click", () => {
 cancelButton.addEventListener("click", () => {
     modal.classList.remove("active");
     editingActivityId = null;
+    resetActivityRepeatForm();
 });
+
+activityRepeat.addEventListener("change", updateRepeatFields);
+activityRepeatDuration.addEventListener("change", updateRepeatFields);
+updateRepeatFields();
 
 
 // =====================================
@@ -434,6 +573,14 @@ saveButton.addEventListener("click", () => {
         return;
     }
 
+    let recurrence;
+    try {
+        recurrence = buildActivityRecurrence(date);
+    } catch (error) {
+        alert(error.message);
+        return;
+    }
+
     if (editingActivityId !== null) {
         const activity = activities.find(
             item => item.id === editingActivityId
@@ -443,15 +590,29 @@ saveButton.addEventListener("click", () => {
             activity.name = name;
             activity.time = time;
             activity.date = date;
+            activity.recurrence = recurrence;
+            if (recurrence) {
+                if (!Array.isArray(activity.doneDates)) activity.doneDates = [];
+                delete activity.done;
+            } else {
+                activity.done = Boolean(activity.done);
+                delete activity.doneDates;
+            }
         }
     } else {
-        activities.push({
+        const newActivity = {
             id: Date.now(),
             name,
             time,
             date,
             done: false
-        });
+        };
+        if (recurrence) {
+            newActivity.recurrence = recurrence;
+            newActivity.doneDates = [];
+            delete newActivity.done;
+        }
+        activities.push(newActivity);
     }
 
     selectedDate = date;
@@ -463,6 +624,7 @@ saveButton.addEventListener("click", () => {
     activityName.value = "";
     activityTime.value = "";
     activityDate.value = "";
+    resetActivityRepeatForm();
 
     editingActivityId = null;
     modal.classList.remove("active");

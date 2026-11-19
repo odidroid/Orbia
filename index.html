@@ -394,6 +394,47 @@
 
             <input type="date" id="activity-date">
 
+            <label class="activity-repeat-label" for="activity-repeat">Repetir atividade</label>
+            <select id="activity-repeat" class="activity-repeat-control">
+                <option value="none">Não repetir</option>
+                <option value="daily">Todos os dias</option>
+                <option value="weekly">Dias da semana</option>
+                <option value="interval">A cada intervalo de dias</option>
+            </select>
+
+            <div id="activity-repeat-weekdays" class="activity-repeat-panel" hidden>
+                <span>Escolha os dias:</span>
+                <div class="activity-repeat-days">
+                    <label><input class="activity-repeat-day" type="checkbox" value="1"> Seg</label>
+                    <label><input class="activity-repeat-day" type="checkbox" value="2"> Ter</label>
+                    <label><input class="activity-repeat-day" type="checkbox" value="3"> Qua</label>
+                    <label><input class="activity-repeat-day" type="checkbox" value="4"> Qui</label>
+                    <label><input class="activity-repeat-day" type="checkbox" value="5"> Sex</label>
+                    <label><input class="activity-repeat-day" type="checkbox" value="6"> Sáb</label>
+                    <label><input class="activity-repeat-day" type="checkbox" value="0"> Dom</label>
+                </div>
+            </div>
+
+            <div id="activity-repeat-interval-field" class="activity-repeat-panel" hidden>
+                <label for="activity-repeat-interval">Repetir a cada quantos dias?</label>
+                <input type="number" id="activity-repeat-interval" min="2" max="365" value="2">
+            </div>
+
+            <label class="activity-repeat-label" for="activity-repeat-duration">Repetir até</label>
+            <select id="activity-repeat-duration" class="activity-repeat-control">
+                <option value="never">Sem data para terminar</option>
+                <option value="1">Por 1 mês</option>
+                <option value="3">Por 3 meses</option>
+                <option value="6">Por 6 meses</option>
+                <option value="12">Por 1 ano</option>
+                <option value="custom">Escolher data final</option>
+            </select>
+
+            <div id="activity-repeat-until-field" class="activity-repeat-panel" hidden>
+                <label for="activity-repeat-until">Data final</label>
+                <input type="date" id="activity-repeat-until">
+            </div>
+
             <div class="modal-actions">
                 <button id="cancel-activity">Cancelar</button>
                 <button id="save-activity">Salvar</button>
