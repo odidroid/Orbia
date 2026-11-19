@@ -23,7 +23,6 @@
         goals: { title: "Vamos avançar nas suas metas", subtitle: "Seus objetivos, no seu ritmo." },
         finance: { title: "Vamos organizar suas finanças", subtitle: "Mais clareza para cuidar do seu dinheiro." },
         settings: { title: "Vamos ajustar seu ORBIA", subtitle: "Deixe tudo do seu jeito." },
-        ai: { title: "Estou aqui com você", subtitle: "Um espaço para conversar, pensar e planejar." }
     };
 
     function greetingPeriod() {
@@ -46,8 +45,7 @@
             heading.textContent = period.text + (name ? ", " + name : "") + "! " + period.emoji;
             subtitle.textContent = copy.title + (name ? ", " + name : "") + "?";
         } else {
-            const punctuation = currentPage === "ai" ? "." : "?";
-            heading.textContent = copy.title + (name ? ", " + name : "") + punctuation;
+            heading.textContent = copy.title + (name ? ", " + name : "") + "?";
             subtitle.textContent = copy.subtitle;
         }
     }
