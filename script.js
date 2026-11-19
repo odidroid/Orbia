@@ -1100,6 +1100,98 @@ saveHabitButton.addEventListener("click", () => {
 
 
 // =====================================
+// API LOCAL PARA INTEGRAÇÃO COM A ÓRBIA IA
+// =====================================
+
+window.OrbiaAppActions = window.OrbiaAppActions || {};
+
+Object.assign(window.OrbiaAppActions, {
+    getHabits() {
+        return habits.map(habit => ({
+            id: habit.id,
+            name: habit.name,
+            frequency: habit.frequency,
+            daysOfWeek: [...getHabitDays(habit)],
+            weeklyGoal: habit.weeklyGoal,
+            reminderTime: habit.reminderTime || "09:00",
+            completedDates: [...habit.completedDates]
+        }));
+    },
+
+    createHabit(data = {}) {
+        const name = String(data.name || "").trim();
+        const days = Array.isArray(data.daysOfWeek)
+            ? [...new Set(data.daysOfWeek.map(Number))]
+            : getDaysForFrequency(data.frequency || "daily");
+        const weeklyGoal = Number(data.weeklyGoal || days.length);
+
+        if (!name || name.length > 50) throw new Error("Informe um nome de hábito com até 50 caracteres.");
+        if (!days.length || days.some(day => !Number.isInteger(day) || day < 0 || day > 6)) {
+            throw new Error("Escolha dias válidos para o hábito.");
+        }
+        if (!Number.isInteger(weeklyGoal) || weeklyGoal < 1 || weeklyGoal > days.length) {
+            throw new Error("A frequência semanal precisa estar entre 1 e o número de dias escolhidos.");
+        }
+
+        const frequency = data.frequency === "weekdays" || data.frequency === "weekends" ||
+            data.frequency === "daily" ? data.frequency : "custom";
+        const habit = {
+            id: Date.now(),
+            name,
+            icon: String(data.icon || "⭐").slice(0, 4),
+            frequency,
+            daysOfWeek: days,
+            weeklyGoal,
+            reminderTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(data.reminderTime || "")
+                ? data.reminderTime : "09:00",
+            completedDates: []
+        };
+        habits.push(habit);
+        saveHabits();
+        renderHabits();
+        return { id: habit.id, name: habit.name, weeklyGoal: habit.weeklyGoal, daysOfWeek: [...days] };
+    },
+
+    completeHabit(name, date = getLocalDate()) {
+        const habit = habits.find(item => item.name.toLocaleLowerCase() === String(name || "").trim().toLocaleLowerCase());
+        if (!habit) throw new Error("Não encontrei esse hábito.");
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !isHabitScheduled(habit, date)) {
+            throw new Error("Esse hábito não está programado para a data informada.");
+        }
+        if (!habit.completedDates.includes(date)) habit.completedDates.push(date);
+        saveHabits();
+        renderHabits();
+        return { name: habit.name, date, completed: true };
+    },
+
+    getActivities() {
+        return activities.map(item => ({ ...item }));
+    },
+
+    createActivity(data = {}) {
+        const name = String(data.name || "").trim();
+        const date = String(data.date || "");
+        const time = String(data.time || "");
+        if (!name || name.length > 100) throw new Error("Informe o nome da atividade.");
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || getLocalDate(new Date(date + "T12:00:00")) !== date) {
+            throw new Error("Informe uma data válida no formato AAAA-MM-DD.");
+        }
+        if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) throw new Error("Informe um horário válido.");
+        const activity = { id: Date.now(), name, time, date, done: false };
+        activities.push(activity);
+        selectedDate = date;
+        saveActivities();
+        renderWeek();
+        renderActivities();
+        return { ...activity };
+    },
+
+    getToday() {
+        return getLocalDate();
+    }
+});
+
+// =====================================
 // NAVEGAÇÃO PRINCIPAL
 // =====================================
 
