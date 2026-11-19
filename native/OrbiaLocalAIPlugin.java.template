@@ -346,8 +346,8 @@ public class OrbiaLocalAIPlugin extends Plugin {
             return;
         }
         modelLoading = true;
-        int contextSize = Math.max(512, Math.min(1024, call.getInt("contextSize", 512)));
-        int threads = Math.max(2, Math.min(3, call.getInt("threads", 2)));
+        int contextSize = Math.max(512, Math.min(1024, call.getInt("contextSize", 1024)));
+        int threads = Math.max(2, Math.min(3, call.getInt("threads", 3)));
         executor.execute(() -> {
             String error;
             try {
