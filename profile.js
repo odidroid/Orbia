@@ -50,7 +50,6 @@
             heading.textContent = copy.title + (name ? ", " + name : "") + punctuation;
             subtitle.textContent = copy.subtitle;
         }
-        document.dispatchEvent(new Event("orbia:profile-ready"));
     }
 
     function mountStyles() {
