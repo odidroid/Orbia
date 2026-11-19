@@ -1,4 +1,6 @@
-# ORBIA IA local — arquitetura inicial
+# ORBIA IA local — documentação histórica
+
+> **Arquivo arquivado (19/11/2026):** a IA foi temporariamente retirada do aplicativo. A interface e a integração nativa Android não fazem mais parte da versão atual. Este documento e `orbia-ai.js` foram mantidos apenas como referência para uma possível retomada futura. As instruções abaixo descrevem a implementação anterior e não representam funcionalidades disponíveis na versão atual.
 
 ## Objetivo
 
@@ -41,7 +43,7 @@ A integração deve oferecer, no mínimo:
 - Não iniciar downloads sem consentimento; preferir Wi-Fi e informar tamanho aproximado.
 - Validar tamanho e checksum quando houver hash oficial confiável.
 
-## Estado da implementação
+## Estado histórico da implementação
 
 - Plugin Capacitor Android `OrbiaLocalAI` registrado automaticamente no projeto gerado pelo workflow.
 - Download privado com pausa, retomada HTTP Range, progresso e verificação SHA-256.
@@ -52,6 +54,8 @@ A integração deve oferecer, no mínimo:
 - Controles para carregar/descarregar o modelo e conversa local sem enviar prompts para serviços remotos.
 - O instalador configura `externalNativeBuild` no Gradle e restringe o APK a `arm64-v8a`, arquitetura esperada no Redmi 14C.
 
-## Validação pendente
+## Situação atual
 
-O código de integração foi adicionado, mas precisa passar pelo build Android/NDK do GitHub Actions e por teste no Redmi 14C. O carregamento pode falhar por pressão de memória; não aumentar o contexto antes de medir o consumo real. O app não usa inferência remota como fallback.
+A implementação descrita acima foi desativada e removida do aplicativo em novembro de 2026. O arquivo JavaScript da IA (`orbia-ai.js`) e esta documentação permanecem no repositório como histórico. Eles não são carregados pelo `index.html` nem copiados pelo `build.js`. O plugin Android, a ponte JNI e os arquivos de compilação nativa foram removidos. Nenhuma inferência de IA está disponível na versão atual do ORBIA.
+
+Para retomar esse trabalho no futuro, será necessário revisar a arquitetura e compatibilidade com a versão vigente do aplicativo; este documento é uma referência histórica, não um guia de instalação pronto para uso.
