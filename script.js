@@ -1199,8 +1199,7 @@ const navigationButtons = {
     home: document.getElementById("nav-home"),
     agenda: document.getElementById("nav-agenda"),
     habits: document.getElementById("nav-habits"),
-    settings: document.getElementById("nav-settings"),
-    ai: document.getElementById("nav-ai")
+    settings: document.getElementById("nav-settings")
 };
 
 const pageSections = {
@@ -1225,9 +1224,6 @@ const pageSections = {
         "settings-section"
     ],
 
-    ai: [
-        "ai-section"
-    ]
 };
 
 const allPageSections = [
@@ -1236,8 +1232,7 @@ const allPageSections = [
     "schedule-section",
     "sleep-section",
     "habits-section",
-    "settings-section",
-    "ai-section"
+    "settings-section"
 ];
 
 function showPage(page) {
@@ -1287,9 +1282,6 @@ navigationButtons.settings.addEventListener("click", () => {
     showPage("settings");
 });
 
-navigationButtons.ai.addEventListener("click", () => {
-    showPage("ai");
-});
 
 document.getElementById("view-all").addEventListener("click", () => {
     showPage("agenda");
