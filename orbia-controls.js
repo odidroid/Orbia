@@ -26,8 +26,8 @@ const css = [
 const style=document.createElement("style");style.textContent=css;
 /* Redesign consistente dos formulários e painéis do ORBIA. */
 style.textContent += `
-.modal,#habit-modal,#goal-modal{align-items:flex-end!important;justify-content:center!important;padding:12px 12px max(12px,env(safe-area-inset-bottom))!important;background:rgba(12,22,38,.62)!important;backdrop-filter:blur(5px)}
-.modal-content,.habit-modal-content,.goal-modal-content{width:100%!important;max-width:480px!important;max-height:min(88dvh,760px)!important;overflow-y:auto!important;overscroll-behavior:contain;padding:22px 18px max(20px,env(safe-area-inset-bottom))!important;border:1px solid var(--border)!important;border-radius:26px 26px 20px 20px!important;background:var(--surface)!important;color:var(--text)!important;box-shadow:0 22px 70px rgba(0,0,0,.24)!important;animation:orbiaFormEnter .22s ease-out both}
+.modal,#habit-modal,#goal-modal{position:fixed!important;inset:0!important;z-index:1000!important;box-sizing:border-box!important;align-items:flex-end!important;justify-content:center!important;padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom))!important;background:rgba(12,22,38,.62)!important;backdrop-filter:blur(5px)}
+.modal-content,.habit-modal-content,.goal-modal-content{width:100%!important;max-width:480px!important;max-height:min(88dvh,calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px),760px)!important;overflow-y:auto!important;overscroll-behavior:contain;padding:22px 18px max(20px,env(safe-area-inset-bottom))!important;border:1px solid var(--border)!important;border-radius:26px 26px 20px 20px!important;background:var(--surface)!important;color:var(--text)!important;box-shadow:0 22px 70px rgba(0,0,0,.24)!important;animation:orbiaFormEnter .22s ease-out both}
 @keyframes orbiaFormEnter{from{opacity:.6;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
 .modal-content h2,.habit-modal-content h2,.goal-modal-content h2{margin:0 0 20px!important;padding-bottom:14px;border-bottom:1px solid var(--border);font-size:21px!important;font-weight:800;color:var(--primary)}
 .modal-content>label,.habit-modal-content>label,.goal-modal-content label,#finance-section form>label,#finance-section .finance-fields label,.sleep-field label{display:block;margin:13px 0 7px!important;color:var(--muted)!important;font-size:11px!important;font-weight:750!important;letter-spacing:.2px}
@@ -42,7 +42,7 @@ style.textContent += `
 .activity-repeat-days,.custom-days-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
 .activity-repeat-days label,.custom-days-grid label{display:flex;align-items:center;justify-content:center;gap:5px;min-height:38px;padding:7px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);font-size:11px;font-weight:700}
 .activity-repeat-days input,.custom-days-grid input{width:15px;height:15px;margin:0;accent-color:var(--accent)}
-.modal-actions,.goal-modal-actions,.modal-actions,.goal-modal-actions{display:flex;gap:9px;margin-top:20px;padding-top:14px;border-top:1px solid var(--border)}
+.modal-actions,.goal-modal-actions{position:sticky;bottom:0;z-index:2;display:flex;flex-shrink:0;gap:9px;margin-top:20px;padding:14px 0 max(0px,env(safe-area-inset-bottom));border-top:1px solid var(--border);background:var(--surface)}
 .modal-actions button,.goal-modal-actions button{flex:1;min-height:48px;padding:12px;border:1px solid var(--border);border-radius:14px;background:var(--background);color:var(--text);font-size:13px;font-weight:750}
 .modal-actions button:last-child,.goal-modal-actions button:last-child{border-color:var(--accent);background:var(--accent);color:white}
 #finance-section .finance-panel{border-radius:20px;padding:18px}
