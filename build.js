@@ -18,7 +18,8 @@ async function build() {
         "finance.js",
         "splash.css",
         "splash.js",
-        "sounds.js"
+        "sounds.js",
+        "orbia-controls.js"
     ];
 
     fs.mkdirSync(output, { recursive: true });
