@@ -637,7 +637,7 @@
                 };
             }
 
-            const completeHabitMatch = text.match(/^(?:marque|marcar|conclua|concluir)\\s+(?:o\\s+)?h[aá]bito\\s+(.+?)(?:\\s+como\\s+conclu[ií]do)?(?:\\s+hoje)?[.!]?$/i);
+            const completeHabitMatch = text.match(/^(?:marque|marcar|conclua|concluir)\s+(?:o\s+)?h[aá]bito\s+(.+?)(?:\s+como\s+conclu[ií]do)?(?:\s+hoje)?[.!]?$/i);
             if (completeHabitMatch) {
                 return {
                     type: "completeHabit",
@@ -646,7 +646,7 @@
                 };
             }
 
-            const progressMatch = text.match(/^(?:atualize|atualizar|registre|registrar)\\s+(?:o\\s+)?progresso\\s+(?:da\\s+)?meta\\s+(.+?)\\s+para\\s+(\\d+(?:[.,]\\d+)?)$/i);
+            const progressMatch = text.match(/^(?:atualize|atualizar|registre|registrar)\s+(?:o\s+)?progresso\s+(?:da\s+)?meta\s+(.+?)\s+para\s+(\\d+(?:[.,]\\d+)?)$/i);
             if (progressMatch) {
                 return {
                     type: "updateGoalProgress",
