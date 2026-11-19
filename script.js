@@ -1369,13 +1369,25 @@ const allPageSections = [
 
 let currentPage = null;
 
+function animatePageTransition(page) {
+    const shouldAnimate = currentPage !== null && currentPage !== page;
+    currentPage = page;
+    if (!shouldAnimate) return;
+
+    const pageContent = document.querySelector("main");
+    pageContent.classList.remove("page-transition-enter");
+    void pageContent.offsetWidth;
+    pageContent.classList.add("page-transition-enter");
+}
+
+window.animatePageTransition = animatePageTransition;
+
 function showPage(page) {
     if (!pageSections[page]) {
         return;
     }
 
-    const shouldAnimate = currentPage !== null && currentPage !== page;
-    currentPage = page;
+    animatePageTransition(page);
 
     allPageSections.forEach(id => {
         const section = document.getElementById(id);
@@ -1387,12 +1399,6 @@ function showPage(page) {
         section.style.display = "";
     });
 
-    if (shouldAnimate) {
-        const pageContent = document.querySelector("main");
-        pageContent.classList.remove("page-transition-enter");
-        void pageContent.offsetWidth;
-        pageContent.classList.add("page-transition-enter");
-    }
 
     Object.entries(navigationButtons).forEach(([name, button]) => {
         button.classList.toggle("active", name === page);
