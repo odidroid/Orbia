@@ -25,6 +25,9 @@ let editingActivityId = null;
 
 const activityName = document.getElementById("activity-name");
 const activityTime = document.getElementById("activity-time");
+const activityEndTime = document.getElementById("activity-end-time");
+const activityReminder = document.getElementById("activity-reminder");
+const activityReminderCustom = document.getElementById("activity-reminder-custom");
 const activityDate = document.getElementById("activity-date");
 const activityRepeat = document.getElementById("activity-repeat");
 const activityRepeatInterval = document.getElementById("activity-repeat-interval");
@@ -140,6 +143,36 @@ function getMonthEndDate(dateString, months) {
     date.setDate(Math.min(originalDay, lastDay));
     date.setDate(date.getDate() - 1);
     return getLocalDate(date);
+}
+
+function updateActivityReminderFields() {
+    const custom = activityReminder.value === "custom";
+    document.getElementById("activity-reminder-custom-field").hidden = !custom;
+    if (custom && !activityReminderCustom.value) {
+        activityReminderCustom.value = "30";
+    }
+}
+
+function setActivityReminderForm(minutes = 5) {
+    const presets = ["0", "5", "10", "15", "30", "60"];
+    if (presets.includes(String(minutes))) {
+        activityReminder.value = String(minutes);
+    } else {
+        activityReminder.value = "custom";
+        activityReminderCustom.value = String(minutes);
+    }
+    updateActivityReminderFields();
+}
+
+function getActivityReminderMinutes() {
+    if (activityReminder.value !== "custom") {
+        return Number(activityReminder.value);
+    }
+    const minutes = Number(activityReminderCustom.value);
+    if (!Number.isInteger(minutes) || minutes < 1 || minutes > 1440) {
+        throw new Error("Escolha uma antecedência entre 1 e 1440 minutos.");
+    }
+    return minutes;
 }
 
 function updateRepeatFields() {
@@ -421,7 +454,9 @@ function renderActivities() {
 
         const time = document.createElement("span");
         time.className = "activity-time";
-        time.textContent = activity.time;
+        time.textContent = activity.endTime
+            ? activity.time + " – " + activity.endTime
+            : activity.time;
 
         const details = document.createElement("div");
         details.className = "activity-details";
@@ -463,6 +498,10 @@ function renderActivities() {
 
             activityName.value = activity.name;
             activityTime.value = activity.time;
+            activityEndTime.value = activity.endTime || "";
+            setActivityReminderForm(
+                Number.isInteger(activity.reminderMinutes) ? activity.reminderMinutes : 5
+            );
             activityDate.value = activity.date;
             fillActivityRepeatForm(sourceActivity);
 
@@ -538,6 +577,8 @@ addButton.addEventListener("click", () => {
 
     activityName.value = "";
     activityTime.value = "";
+    activityEndTime.value = "";
+    setActivityReminderForm(5);
     activityDate.value = selectedDate;
     resetActivityRepeatForm();
 
@@ -556,6 +597,8 @@ cancelButton.addEventListener("click", () => {
 
 activityRepeat.addEventListener("change", updateRepeatFields);
 activityRepeatDuration.addEventListener("change", updateRepeatFields);
+activityReminder.addEventListener("change", updateActivityReminderFields);
+updateActivityReminderFields();
 updateRepeatFields();
 
 
@@ -566,10 +609,24 @@ updateRepeatFields();
 saveButton.addEventListener("click", () => {
     const name = activityName.value.trim();
     const time = activityTime.value;
+    const endTime = activityEndTime.value;
     const date = activityDate.value;
 
     if (!name || !time || !date) {
-        alert("Preencha o nome, horário e data.");
+        alert("Preencha o nome, horário de início e data.");
+        return;
+    }
+
+    if (endTime && endTime <= time) {
+        alert("O horário de término deve ser posterior ao horário de início.");
+        return;
+    }
+
+    let reminderMinutes;
+    try {
+        reminderMinutes = getActivityReminderMinutes();
+    } catch (error) {
+        alert(error.message);
         return;
     }
 
@@ -589,6 +646,9 @@ saveButton.addEventListener("click", () => {
         if (activity) {
             activity.name = name;
             activity.time = time;
+            if (endTime) activity.endTime = endTime;
+            else delete activity.endTime;
+            activity.reminderMinutes = reminderMinutes;
             activity.date = date;
             activity.recurrence = recurrence;
             if (recurrence) {
@@ -604,6 +664,8 @@ saveButton.addEventListener("click", () => {
             id: Date.now(),
             name,
             time,
+            ...(endTime ? { endTime } : {}),
+            reminderMinutes,
             date,
             done: false
         };
