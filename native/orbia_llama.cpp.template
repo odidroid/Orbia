@@ -32,6 +32,10 @@ static jstring toJString(JNIEnv * env, const std::string & value) {
     return env->NewStringUTF(value.c_str());
 }
 
+static jstring generationError(JNIEnv * env, const std::string & message) {
+    return toJString(env, "ORBIA_GENERATION_ERROR:" + message);
+}
+
 extern "C" JNIEXPORT jstring JNICALL
 Java___PACKAGE_UNDERSCORES___OrbiaLocalAIPlugin_nativeLoadModel(
         JNIEnv * env, jclass, jstring model_path, jint context_size, jint threads) {
@@ -83,10 +87,10 @@ extern "C" JNIEXPORT jstring JNICALL
 Java___PACKAGE_UNDERSCORES___OrbiaLocalAIPlugin_nativeGenerate(
         JNIEnv * env, jclass, jstring prompt_value, jint max_tokens, jfloat temperature, jobject callback) {
     std::lock_guard<std::mutex> lock(g_mutex);
-    if (!g_model || !g_context || !g_vocab) return toJString(env, "Carregue o modelo local antes de conversar.");
+    if (!g_model || !g_context || !g_vocab) return generationError(env, "Carregue o modelo local antes de conversar.");
 
     const std::string user_prompt = jstringToUtf8(env, prompt_value);
-    if (user_prompt.empty()) return toJString(env, "Digite uma mensagem para começar.");
+    if (user_prompt.empty()) return generationError(env, "Digite uma mensagem para começar.");
 
     llama_memory_clear(llama_get_memory(g_context), true);
     g_cancel.store(false);
@@ -100,12 +104,12 @@ Java___PACKAGE_UNDERSCORES___OrbiaLocalAIPlugin_nativeGenerate(
         };
         std::vector<char> formatted(std::max<size_t>(4096, user_prompt.size() * 4 + 2048));
         int32_t length = llama_chat_apply_template(chat_template, messages, 2, true, formatted.data(), static_cast<int32_t>(formatted.size()));
-        if (length < 0) return toJString(env, "Não foi possível formatar a conversa para este modelo.");
+        if (length < 0) return generationError(env, "Não foi possível formatar a conversa para este modelo.");
         if (static_cast<size_t>(length) > formatted.size()) {
             formatted.resize(static_cast<size_t>(length) + 1);
             length = llama_chat_apply_template(chat_template, messages, 2, true, formatted.data(), static_cast<int32_t>(formatted.size()));
         }
-        if (length < 0) return toJString(env, "Falha ao preparar o prompt.");
+        if (length < 0) return generationError(env, "Falha ao preparar o prompt.");
         prompt.assign(formatted.data(), static_cast<size_t>(length));
     } else {
         prompt = "Você é Órbia, uma assistente pessoal. Responda em português brasileiro.\nUsuário: " +
@@ -113,18 +117,19 @@ Java___PACKAGE_UNDERSCORES___OrbiaLocalAIPlugin_nativeGenerate(
     }
 
     const int32_t needed = -llama_tokenize(g_vocab, prompt.c_str(), static_cast<int32_t>(prompt.size()), nullptr, 0, true, true);
-    if (needed <= 0) return toJString(env, "Não foi possível tokenizar a mensagem.");
+    if (needed <= 0) return generationError(env, "Não foi possível tokenizar a mensagem.");
     std::vector<llama_token> prompt_tokens(static_cast<size_t>(needed));
     const int32_t token_count = llama_tokenize(g_vocab, prompt.c_str(), static_cast<int32_t>(prompt.size()),
                                                prompt_tokens.data(), needed, true, true);
-    if (token_count <= 0) return toJString(env, "Falha ao converter a mensagem em tokens.");
+    if (token_count <= 0) return generationError(env, "Falha ao converter a mensagem em tokens.");
 
     const uint32_t context_limit = llama_n_ctx(g_context);
     if (static_cast<uint32_t>(token_count + 8) >= context_limit) {
-        return toJString(env, "Mensagem muito longa para a memória disponível. Envie um texto menor.");
+        return generationError(env, "Mensagem muito longa para a memória disponível. Envie um texto menor.");
     }
 
     llama_sampler * sampler = llama_sampler_chain_init(llama_sampler_chain_default_params());
+    if (!sampler) return generationError(env, "Não foi possível inicializar o gerador de texto.");
     llama_sampler_chain_add(sampler, llama_sampler_init_top_k(40));
     llama_sampler_chain_add(sampler, llama_sampler_init_top_p(0.90f, 1));
     llama_sampler_chain_add(sampler, llama_sampler_init_temp(std::max(0.1f, std::min(1.2f, temperature))));
@@ -133,7 +138,7 @@ Java___PACKAGE_UNDERSCORES___OrbiaLocalAIPlugin_nativeGenerate(
     llama_batch_ext * batch = llama_batch_ext_init(g_context);
     if (!batch) {
         llama_sampler_free(sampler);
-        return toJString(env, "Não foi possível alocar o lote de tokens.");
+        return generationError(env, "Não foi possível alocar o lote de tokens.");
     }
 
     std::string response;
@@ -169,7 +174,7 @@ Java___PACKAGE_UNDERSCORES___OrbiaLocalAIPlugin_nativeGenerate(
 
         char piece_buffer[512];
         int32_t piece_size = llama_token_to_piece(g_vocab, token, piece_buffer, sizeof(piece_buffer), 0, true);
-        if (piece_size < 0) break;
+        if (piece_size < 0) { result_code = -1; break; }
         std::string piece(piece_buffer, static_cast<size_t>(piece_size));
         response += piece;
 
@@ -195,7 +200,7 @@ Java___PACKAGE_UNDERSCORES___OrbiaLocalAIPlugin_nativeGenerate(
     llama_batch_ext_free(batch);
     llama_sampler_free(sampler);
 
-    if (result_code != 0) return toJString(env, "O mecanismo local encontrou um erro ao processar a mensagem.");
+    if (result_code != 0) return generationError(env, "O mecanismo local encontrou um erro ao processar a mensagem.");
     if (g_cancel.load()) return toJString(env, response);
     return toJString(env, response);
 }
