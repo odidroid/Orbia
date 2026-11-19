@@ -96,22 +96,41 @@ function initDateTime(input){
 function datePicker(input,update,isMonth){
  let view=isMonth?parseMonth(input.value):parseDate(input.value);view=new Date(view.getFullYear(),view.getMonth(),1,12);
  let selected=input.value||(isMonth?(view.getFullYear()+"-"+pad(view.getMonth()+1)):iso(new Date()));
+ let panel="calendar",yearStart=Math.floor(view.getFullYear()/12)*12;
  const ui=backdrop(isMonth?"Escolher mês":"Escolher data"),body=ui.body;
  function render(){
   body.innerHTML="";const nav=document.createElement("div");nav.className="orbia-calendar-nav";
-  const prev=document.createElement("button"),next=document.createElement("button"),label=document.createElement("strong");
-  prev.type=next.type="button";prev.textContent="‹";next.textContent="›";label.textContent=months[view.getMonth()]+" de "+view.getFullYear();
-  prev.addEventListener("click",()=>{view.setMonth(view.getMonth()-1);render();});next.addEventListener("click",()=>{view.setMonth(view.getMonth()+1);render();});nav.append(prev,label,next);body.append(nav);
+  const prev=document.createElement("button"),next=document.createElement("button");
+  prev.type=next.type="button";prev.textContent="‹";next.textContent="›";
+  const heading=document.createElement("div");heading.style.cssText="display:flex;align-items:center;justify-content:center;gap:7px;flex:1";
+  const monthBtn=document.createElement("button"),yearBtn=document.createElement("button");
+  monthBtn.type=yearBtn.type="button";monthBtn.textContent=months[view.getMonth()];yearBtn.textContent=String(view.getFullYear());
+  [monthBtn,yearBtn].forEach(btn=>{btn.style.cssText="width:auto;min-width:0;padding:7px 9px;border:1px solid var(--border);border-radius:10px;background:var(--background);color:var(--primary);font-size:14px;font-weight:750";});
+  monthBtn.addEventListener("click",()=>{panel="months";render();});
+  yearBtn.addEventListener("click",()=>{yearStart=Math.floor(view.getFullYear()/12)*12;panel="years";render();});
+  prev.addEventListener("click",()=>{if(panel==="years")yearStart-=12;else if(panel==="months")view.setFullYear(view.getFullYear()-1);else view.setMonth(view.getMonth()-1);render();});
+  next.addEventListener("click",()=>{if(panel==="years")yearStart+=12;else if(panel==="months")view.setFullYear(view.getFullYear()+1);else view.setMonth(view.getMonth()+1);render();});
+  heading.append(monthBtn,yearBtn);nav.append(prev,heading,next);body.append(nav);
   const grid=document.createElement("div");grid.className="orbia-calendar-grid";
-  if(isMonth){grid.style.gridTemplateColumns="repeat(3,minmax(0,1fr))";months.forEach((name,i)=>{const b=document.createElement("button");b.type="button";b.className="orbia-calendar-day";b.style.aspectRatio="auto";b.style.minHeight="58px";b.textContent=name.slice(0,3);const v=view.getFullYear()+"-"+pad(i+1);if(v===selected)b.classList.add("is-selected");b.addEventListener("click",()=>{selected=v;render();});grid.append(b);});}
-  else{
+  if(panel==="years"){
+   grid.style.gridTemplateColumns="repeat(3,minmax(0,1fr))";
+   for(let year=yearStart;year<yearStart+12;year++){const b=document.createElement("button");b.type="button";b.className="orbia-calendar-day";b.style.aspectRatio="auto";b.style.minHeight="54px";b.textContent=String(year);if(year===view.getFullYear())b.classList.add("is-selected");b.addEventListener("click",()=>{view.setFullYear(year);panel="months";render();});grid.append(b);}
+  }else if(panel==="months"){
+   grid.style.gridTemplateColumns="repeat(3,minmax(0,1fr))";
+   months.forEach((name,i)=>{const b=document.createElement("button");b.type="button";b.className="orbia-calendar-day";b.style.aspectRatio="auto";b.style.minHeight="54px";b.textContent=name.slice(0,3);if(i===view.getMonth())b.classList.add("is-selected");b.addEventListener("click",()=>{view.setMonth(i);panel="calendar";render();});grid.append(b);});
+  }else if(isMonth){
+   grid.style.gridTemplateColumns="repeat(3,minmax(0,1fr))";
+   months.forEach((name,i)=>{const b=document.createElement("button");b.type="button";b.className="orbia-calendar-day";b.style.aspectRatio="auto";b.style.minHeight="58px";b.textContent=name.slice(0,3);const v=view.getFullYear()+"-"+pad(i+1);if(v===selected)b.classList.add("is-selected");b.addEventListener("click",()=>{selected=v;render();});grid.append(b);});
+  }else{
    weekdays.forEach(d=>{const w=document.createElement("span");w.className="orbia-calendar-weekday";w.textContent=d;grid.append(w);});
    const first=new Date(view.getFullYear(),view.getMonth(),1,12),start=new Date(first);start.setDate(1-first.getDay());
    for(let i=0;i<42;i++){const d=new Date(start);d.setDate(start.getDate()+i);const v=iso(d),b=document.createElement("button");b.type="button";b.className="orbia-calendar-day";b.textContent=d.getDate();if(d.getMonth()!==view.getMonth())b.classList.add("is-outside");if(v===iso(new Date()))b.classList.add("is-today");if(v===selected)b.classList.add("is-selected");if((input.min&&v<input.min)||(input.max&&v>input.max))b.disabled=true;b.addEventListener("click",()=>{selected=v;render();});grid.append(b);}
   }
-  body.append(grid);const actions=document.createElement("div");actions.className="orbia-picker-actions";
-  const cancel=document.createElement("button"),ok=document.createElement("button");cancel.type=ok.type="button";cancel.textContent="Cancelar";ok.textContent=isMonth?"Confirmar mês":"Confirmar data";ok.className="is-primary";cancel.addEventListener("click",ui.close);
-  ok.addEventListener("click",()=>{if(!selected)return;input.value=selected;changed(input);update();ui.close();});actions.append(cancel,ok);body.append(actions);
+  body.append(grid);
+  if(panel==="calendar"||isMonth){const actions=document.createElement("div");actions.className="orbia-picker-actions";
+   const cancel=document.createElement("button"),ok=document.createElement("button");cancel.type=ok.type="button";cancel.textContent="Cancelar";ok.textContent=isMonth?"Confirmar mês":"Confirmar data";ok.className="is-primary";cancel.addEventListener("click",ui.close);
+   ok.addEventListener("click",()=>{if(!selected)return;input.value=selected;changed(input);update();ui.close();});actions.append(cancel,ok);body.append(actions);
+  }
  }
  render();
 }
