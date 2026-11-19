@@ -42,7 +42,6 @@ function generateBackupContent() {
         version: 1,
         exportedAt: new Date().toISOString(),
         profile: (() => { try { return JSON.parse(localStorage.getItem("orbia-profile") || "null"); } catch { return null; } })(),
-        voiceSettings: (() => { try { return JSON.parse(localStorage.getItem("orbia-voice-settings") || "null"); } catch { return null; } })(),
         activities: activities,
         habits: habits,
         goals: goals,
@@ -404,13 +403,6 @@ function validateBackup(data) {
         if (!profile || typeof profile !== "object" || typeof profile.name !== "string" || !profile.name.trim() || typeof profile.birthDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(profile.birthDate) || !validTime(profile.bedtime) || !validTime(profile.waketime)) return false;
     }
 
-    if (data.voiceSettings !== undefined && data.voiceSettings !== null) {
-        const voice = data.voiceSettings;
-        if (!voice || typeof voice !== "object" || typeof voice.enabled !== "boolean" ||
-            !["female", "male"].includes(voice.gender) ||
-            !Number.isFinite(Number(voice.rate)) || Number(voice.rate) < 0.82 || Number(voice.rate) > 1.05) return false;
-    }
-
     if (data.notificationSettings !== undefined) {
         const settings = data.notificationSettings;
         if (!settings || typeof settings !== "object" || typeof settings.enabled !== "boolean" ||
@@ -613,7 +605,7 @@ importBackupFile.addEventListener("change", async event => {
         const storageKeys = [
             "orbia-activities", "orbia-habits", "orbia-goals",
             "orbia-finance-records", "orbia-finance-budgets",
-            "orbia-sleep", "orbia-sleep-reminders", "orbia-profile", "orbia-voice-settings"
+            "orbia-sleep", "orbia-sleep-reminders", "orbia-profile"
         ];
         const previousStorage = Object.fromEntries(storageKeys.map(key => [key, localStorage.getItem(key)]));
         const previousState = { activities, habits, goals };
@@ -641,10 +633,6 @@ importBackupFile.addEventListener("change", async event => {
             if (window.OrbiaFinance && backup.finance) window.OrbiaFinance.restoreData(backup.finance);
             if (window.OrbiaSleep && Array.isArray(backup.sleep)) window.OrbiaSleep.restoreData(backup.sleep);
             if (backup.profile) localStorage.setItem("orbia-profile", JSON.stringify(backup.profile));
-            if (backup.voiceSettings) {
-                localStorage.setItem("orbia-voice-settings", JSON.stringify(backup.voiceSettings));
-                if (window.OrbiaVoice && window.OrbiaVoice.restoreSettings) window.OrbiaVoice.restoreSettings(backup.voiceSettings);
-            }
             if (window.OrbiaNotifications && backup.notificationSettings && window.OrbiaNotifications.restoreSettings) {
                 window.OrbiaNotifications.restoreSettings(backup.notificationSettings);
             }
