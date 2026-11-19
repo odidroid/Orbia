@@ -97,11 +97,46 @@ jobs:
       - name: Sincronizar Capacitor
         run: npx cap sync android
 
+      - name: Aplicar assinatura fixa ao Gradle
+        run: node configure-android-signing.js
+
       - name: Compilar APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
+
+      - name: Verificar assinatura do APK
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          APKSIGNER="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+
+          if [[ ! -f "$APK" ]]; then
+            echo "::error::APK não encontrado para validar a assinatura."
+            exit 1
+          fi
+
+          EXPECTED="$(keytool -exportcert -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -storepass android | sha256sum | awk '{print toupper($1)}')"
+          SIGNATURE_INFO="$("$APKSIGNER" verify --verbose --print-certs "$APK" 2>&1)"
+          ACTUAL="$(printf '%s\\n' "$SIGNATURE_INFO" | awk -F': ' '/certificate SHA-256 digest:/ {gsub(":", "", $2); print toupper($2); exit}')"
+
+          if [[ -z "$ACTUAL" ]]; then
+            echo "::error::Não foi possível ler o certificado do APK."
+            printf '%s\\n' "$SIGNATURE_INFO"
+            exit 1
+          fi
+
+          if [[ "$ACTUAL" != "$EXPECTED" ]]; then
+            echo "::error::O APK foi assinado com uma chave diferente da chave fixa do ORBIA."
+            echo "Esperado: $EXPECTED"
+            echo "Encontrado: $ACTUAL"
+            exit 1
+          fi
+
+          echo "Assinatura do APK confirmada: certificado corresponde à chave fixa do ORBIA."
 
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
