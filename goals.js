@@ -459,6 +459,9 @@ const originalShowPage = showPage;
 
 showPage = function(page) {
     if (page === "goals") {
+        if (typeof window.animatePageTransition === "function") {
+            window.animatePageTransition("goals");
+        }
         const sections = [
             "daily-progress-section",
             "agenda-section",
