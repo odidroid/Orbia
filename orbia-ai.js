@@ -38,14 +38,19 @@
                 message: status?.message || ""
             };
         } catch (error) {
+            const detail = error?.message || String(error || "Erro nativo sem detalhes.");
+            console.error("[ORBIA IA] Falha ao consultar getStatus().", error);
             return {
                 available: false,
                 downloadAvailable: false,
                 modelInstalled: false,
                 runtimeConnected: false,
+                runtimeAvailable: false,
+                modelLoading: false,
                 downloading: false,
                 mode: "error",
-                message: "Não foi possível consultar o mecanismo local."
+                errorMessage: detail,
+                message: "Não foi possível consultar o mecanismo local: " + detail
             };
         }
     }
@@ -343,6 +348,14 @@
 
         async function refresh() {
             const current = await api.getStatus();
+            if (current.mode === "error") {
+                loadButton.disabled = true;
+                loadButton.hidden = false;
+                unloadButton.hidden = true;
+                status.textContent = current.message || "Falha ao consultar o mecanismo local.";
+                console.error("[ORBIA IA] Estado do runtime indisponível.", current.errorMessage || current);
+                return;
+            }
             loadButton.disabled = !current.modelInstalled || !current.runtimeAvailable || current.modelLoading;
             loadButton.hidden = current.runtimeConnected;
             unloadButton.hidden = !current.runtimeConnected;
@@ -396,8 +409,10 @@
                     : (current.runtimeAvailable ? "Modelo instalado. Carregue-o para conversar." : "Runtime nativo ausente neste APK.");
                 if (current.runtimeConnected) createChatControls();
             }
-        }).catch(() => {
-            status.textContent = "Não foi possível consultar o estado do runtime.";
+        }).catch(error => {
+            loadButton.disabled = true;
+            status.textContent = "Falha ao consultar o runtime: " + (error?.message || String(error));
+            console.error("[ORBIA IA] Erro inesperado na consulta inicial do runtime.", error);
         });
     }
 
