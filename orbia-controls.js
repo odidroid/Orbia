@@ -42,11 +42,11 @@ function changed(input){input.dispatchEvent(new Event("input",{bubbles:true}));i
 function initDateTime(input){
  if(input.dataset.orbiaPickerReady)return;input.dataset.orbiaPickerReady="1";const type=input.type;
  const wrap=document.createElement("div");wrap.className="orbia-control-wrap";input.parentNode.insertBefore(wrap,input);wrap.appendChild(input);input.classList.add("orbia-control-native");
- const button=document.createElement("button");button.type="button";button.className="orbia-control-trigger";button.innerHTML='<span class="orbia-control-value"></span><span class="orbia-control-icon" aria-hidden="true">⌄</span>';wrap.appendChild(button);
+ const button=document.createElement("button");button.type="button";button.className="orbia-control-trigger";if(input.id){button.id=input.id+"-orbia-trigger";const label=Array.from(document.querySelectorAll("label[for]")).find(item=>item.htmlFor===input.id);if(label)label.htmlFor=button.id;}button.innerHTML='<span class="orbia-control-value"></span><span class="orbia-control-icon" aria-hidden="true">⌄</span>';wrap.appendChild(button);
  const value=button.querySelector(".orbia-control-value");
  const update=()=>{if(type==="time")value.textContent=input.value||"Selecionar horário";else if(type==="month")value.textContent=input.value?parseMonth(input.value).toLocaleDateString("pt-BR",{month:"long",year:"numeric"}):"Selecionar mês";else value.textContent=input.value?parseDate(input.value).toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"numeric"}).replace(".",""):"Selecionar data";};
- input.addEventListener("change",update);update();
- button.addEventListener("click",()=>type==="time"?timePicker(input,update):datePicker(input,update,type==="month"));
+ input.addEventListener("change",update);if(input.form)input.form.addEventListener("reset",()=>setTimeout(update,0));update();
+ button.addEventListener("click",()=>{update();if(type==="time")timePicker(input,update);else datePicker(input,update,type==="month");});
 }
 function datePicker(input,update,isMonth){
  let view=isMonth?parseMonth(input.value):parseDate(input.value);view=new Date(view.getFullYear(),view.getMonth(),1,12);
@@ -80,9 +80,9 @@ function timePicker(input,update){
 }
 function initSelect(select){
  if(select.dataset.orbiaPickerReady)return;select.dataset.orbiaPickerReady="1";const wrap=document.createElement("div");wrap.className="orbia-control-wrap";select.parentNode.insertBefore(wrap,select);wrap.appendChild(select);select.classList.add("orbia-control-native");
- const button=document.createElement("button");button.type="button";button.className="orbia-control-trigger";button.innerHTML='<span class="orbia-control-value"></span><span class="orbia-control-icon" aria-hidden="true">⌄</span>';wrap.appendChild(button);const value=button.querySelector(".orbia-control-value");
- const update=()=>{const option=select.options[select.selectedIndex];value.textContent=option?option.textContent:"Selecionar";button.disabled=select.disabled;};select.addEventListener("change",update);update();
- button.addEventListener("click",()=>{const ui=backdrop(select.labels&&select.labels[0]?select.labels[0].textContent:"Escolher opção"),list=document.createElement("div");list.className="orbia-select-options";
+ const button=document.createElement("button");button.type="button";button.className="orbia-control-trigger";if(select.id){button.id=select.id+"-orbia-trigger";const label=Array.from(document.querySelectorAll("label[for]")).find(item=>item.htmlFor===select.id);if(label)label.htmlFor=button.id;}button.innerHTML='<span class="orbia-control-value"></span><span class="orbia-control-icon" aria-hidden="true">⌄</span>';wrap.appendChild(button);const value=button.querySelector(".orbia-control-value");
+ const update=()=>{const option=select.options[select.selectedIndex];value.textContent=option?option.textContent:"Selecionar";button.disabled=select.disabled;};select.addEventListener("change",update);if(select.form)select.form.addEventListener("reset",()=>setTimeout(update,0));update();
+ button.addEventListener("click",()=>{update();const ui=backdrop(select.labels&&select.labels[0]?select.labels[0].textContent:"Escolher opção"),list=document.createElement("div");list.className="orbia-select-options";
  Array.from(select.options).forEach((option,index)=>{const b=document.createElement("button");b.type="button";b.className="orbia-select-option"+(option.selected?" is-selected":"");b.disabled=option.disabled;const t=document.createElement("span");t.textContent=option.textContent;b.append(t);if(option.selected){const check=document.createElement("span");check.textContent="✓";check.style.color="var(--accent)";b.append(check);}b.addEventListener("click",()=>{select.selectedIndex=index;changed(select);update();ui.close();});list.append(b);});ui.body.append(list);});
 }
 function init(root){
