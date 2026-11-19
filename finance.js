@@ -97,6 +97,7 @@ monthInput.addEventListener("change",()=>{updateMonthLabel();render()});
 const previousShowPage=window.showPage||showPage;
 function showFinanceAwarePage(page){
 if(page==="finance"){
+if(typeof window.animatePageTransition==="function")window.animatePageTransition("finance");
 document.querySelectorAll("main > section").forEach(x=>x.style.display="none");
 const goals=document.getElementById("goals-section");if(goals)goals.style.display="none";
 section.style.display="";
