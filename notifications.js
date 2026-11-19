@@ -105,6 +105,7 @@ import { LocalNotifications } from "@capacitor/local-notifications";
         const habits = safeArray("orbia-habits");
         const goals = safeArray("orbia-goals");
         const sleep = sleepSettings();
+        const financeRecords = safeArray("orbia-finance-records");
 
         function dateDifferenceInDays(startDate, endDate) {
             const start = new Date(startDate + "T12:00:00");
@@ -172,6 +173,31 @@ import { LocalNotifications } from "@capacitor/local-notifications";
         goals.forEach(goal => {
             if (!goal || !goal.deadline || Number(goal.current) >= Number(goal.target)) return;
             addNotification(queue, "goal:" + goal.id, "Uma meta está chegando ao prazo", (goal.name || "Sua meta") + " tem prazo hoje. Confira seu progresso.", dateAt(goal.deadline, "09:00"), "goal");
+        });
+
+        financeRecords.filter(item => item && item.type === "income" && item.date && item.receivedEarly !== true).forEach(item => {
+            const addIncomeReminder = date => {
+                if (!date || (Array.isArray(item.receivedDates) && item.receivedDates.includes(date))) return;
+                const due = new Date(date + "T09:00:00");
+                due.setDate(due.getDate() - 1);
+                addNotification(queue, "finance:" + item.id + ":" + date, "Recebimento previsto amanhã", (item.description || "Sua entrada") + " • " + new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(item.amount) || 0), due, "finance");
+            };
+            if (item.monthlyRecurrence) {
+                const start = new Date(item.date + "T12:00:00");
+                for (let offset = 0; offset < 12; offset++) {
+                    const year = now.getFullYear();
+                    const monthIndex = now.getMonth() + offset;
+                    const first = new Date(year, monthIndex, 1);
+                    const targetYear = first.getFullYear();
+                    const targetMonth = first.getMonth();
+                    const day = Number(start.getDate());
+                    const lastDay = new Date(targetYear, targetMonth + 1, 0).getDate();
+                    const date = targetYear + "-" + String(targetMonth + 1).padStart(2, "0") + "-" + String(Math.min(day, lastDay)).padStart(2, "0");
+                    if (date >= item.date) addIncomeReminder(date);
+                }
+            } else {
+                addIncomeReminder(item.date);
+            }
         });
 
         return queue.slice(0, 450);
