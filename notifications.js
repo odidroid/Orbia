@@ -200,6 +200,39 @@ import { LocalNotifications } from "@capacitor/local-notifications";
             }
         });
 
+        financeRecords.filter(item => item && item.type === "expense" && item.fixedRecurrence && item.date).forEach(item => {
+            const start = new Date(item.date + "T12:00:00");
+            const addExpenseReminder = (baseDate) => {
+                if (Array.isArray(item.paidDates) && item.paidDates.includes(baseDate)) return;
+                const override = item.occurrenceOverrides && item.occurrenceOverrides[baseDate];
+                const dueDate = override && override.date ? override.date : baseDate;
+                const due = new Date(dueDate + "T09:00:00");
+                due.setDate(due.getDate() - 1);
+                const value = Number(override && override.amount != null ? override.amount : item.amount) || 0;
+                addNotification(queue, "finance-expense:" + item.id + ":" + baseDate, "Conta vence amanhã", (item.description || "Sua despesa fixa") + " • " + new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value), due, "finance");
+            };
+            for (let offset = 0; offset < 12; offset++) {
+                const first = new Date(now.getFullYear(), now.getMonth() + offset, 1, 12);
+                const year = first.getFullYear(), month = first.getMonth();
+                if (item.fixedRecurrence === "monthly") {
+                    const day = start.getDate(), last = new Date(year, month + 1, 0).getDate();
+                    const date = year + "-" + String(month + 1).padStart(2, "0") + "-" + String(Math.min(day, last)).padStart(2, "0");
+                    if (date >= item.date) addExpenseReminder(date);
+                } else if (item.fixedRecurrence === "yearly" && month === start.getMonth() && year >= start.getFullYear()) {
+                    const last = new Date(year, month + 1, 0).getDate();
+                    const date = year + "-" + String(month + 1).padStart(2, "0") + "-" + String(Math.min(start.getDate(), last)).padStart(2, "0");
+                    addExpenseReminder(date);
+                } else if (item.fixedRecurrence === "weekly") {
+                    const days = new Date(year, month + 1, 0).getDate();
+                    for (let day = 1; day <= days; day++) {
+                        const due = new Date(year, month, day, 12);
+                        const date = localDate(due);
+                        if (date >= item.date && due.getDay() === start.getDay()) addExpenseReminder(date);
+                    }
+                }
+            }
+        });
+
         return queue.slice(0, 450);
     }
 
