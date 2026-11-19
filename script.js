@@ -171,6 +171,9 @@ function fillActivityRepeatForm(activity) {
 
     if (activity.recurrence.duration) {
         activityRepeatDuration.value = String(activity.recurrence.duration);
+        if (activity.recurrence.duration === "custom") {
+            activityRepeatUntil.value = activity.recurrence.until || "";
+        }
     } else if (activity.recurrence.until) {
         activityRepeatDuration.value = "custom";
         activityRepeatUntil.value = activity.recurrence.until;
