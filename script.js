@@ -1173,7 +1173,7 @@ Object.assign(window.OrbiaAppActions, {
         const date = String(data.date || "");
         const time = String(data.time || "");
         if (!name || name.length > 100) throw new Error("Informe o nome da atividade.");
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date + "T12:00:00"))) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || getLocalDate(new Date(date + "T12:00:00")) !== date) {
             throw new Error("Informe uma data válida no formato AAAA-MM-DD.");
         }
         if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) throw new Error("Informe um horário válido.");
