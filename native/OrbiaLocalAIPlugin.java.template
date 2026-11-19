@@ -346,8 +346,8 @@ public class OrbiaLocalAIPlugin extends Plugin {
             return;
         }
         modelLoading = true;
-        int contextSize = Math.max(512, Math.min(2048, call.getInt("contextSize", 1024)));
-        int threads = Math.max(2, Math.min(4, call.getInt("threads", 3)));
+        int contextSize = Math.max(512, Math.min(1024, call.getInt("contextSize", 512)));
+        int threads = Math.max(2, Math.min(3, call.getInt("threads", 2)));
         executor.execute(() -> {
             String error;
             try {
@@ -427,7 +427,9 @@ public class OrbiaLocalAIPlugin extends Plugin {
             mainHandler.post(() -> {
                 generationInProgress = false;
                 if (resultText == null) {
-                    call.reject("A geração local falhou. Tente descarregar e carregar o modelo novamente.");
+                    call.reject("A geração local falhou. Consulte o registro do Android para mais detalhes.");
+                } else if (resultText.startsWith("ORBIA_GENERATION_ERROR:")) {
+                    call.reject(resultText.substring("ORBIA_GENERATION_ERROR:".length()));
                 } else {
                     JSObject result = new JSObject();
                     result.put("text", resultText);
