@@ -106,16 +106,54 @@ import { LocalNotifications } from "@capacitor/local-notifications";
         const goals = safeArray("orbia-goals");
         const sleep = sleepSettings();
 
-        activities.forEach(item => {
-            if (!item || item.done || !item.date || !item.time) return;
-            const at = dateAt(item.date, item.time);
-            addNotification(queue, "activity:" + item.id, "Sua atividade está começando", item.name || "Confira sua agenda no ORBIA.", new Date(at.getTime() - 5 * 60000), "activity");
-        });
+        function dateDifferenceInDays(startDate, endDate) {
+            const start = new Date(startDate + "T12:00:00");
+            const end = new Date(endDate + "T12:00:00");
+            return Math.round((end - start) / 86400000);
+        }
+
+        function isActivityScheduled(item, date, weekday) {
+            if (date < item.date) return false;
+            const rule = item.recurrence;
+            if (!rule) return date === item.date;
+            if (rule.until && date > rule.until) return false;
+
+            const elapsedDays = dateDifferenceInDays(item.date, date);
+            if (rule.type === "daily") return true;
+            if (rule.type === "weekly") {
+                return Array.isArray(rule.daysOfWeek) && rule.daysOfWeek.includes(weekday);
+            }
+            if (rule.type === "interval") {
+                const interval = Math.max(1, Number(rule.interval) || 1);
+                return elapsedDays >= 0 && elapsedDays % interval === 0;
+            }
+            return false;
+        }
 
         for (let offset = 0; offset < 7; offset++) {
             const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset, 12);
             const date = localDate(day);
             const weekday = day.getDay();
+
+            activities.forEach(item => {
+                if (!item || !item.date || !item.time) return;
+                if (!isActivityScheduled(item, date, weekday)) return;
+                if (item.recurrence && Array.isArray(item.doneDates) && item.doneDates.includes(date)) return;
+                if (!item.recurrence && item.done) return;
+
+                const at = dateAt(date, item.time);
+                const key = item.recurrence
+                    ? "activity:" + item.id + ":" + date
+                    : "activity:" + item.id;
+                addNotification(
+                    queue,
+                    key,
+                    "Sua atividade está começando",
+                    item.name || "Confira sua agenda no ORBIA.",
+                    new Date(at.getTime() - 5 * 60000),
+                    "activity"
+                );
+            });
 
             habits.forEach(habit => {
                 if (!habit || !Array.isArray(habit.daysOfWeek)) return;
