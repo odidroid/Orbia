@@ -94,11 +94,11 @@ jobs:
       - name: Instalar plugin nativo da ORBIA IA
         run: node install-local-ai-plugin.js
 
-      - name: Aplicar assinatura fixa ao Gradle
-        run: node configure-android-signing.js
-
       - name: Sincronizar Capacitor
         run: npx cap sync android
+
+      - name: Aplicar assinatura fixa ao Gradle
+        run: node configure-android-signing.js
 
       - name: Compilar APK
         run: |
