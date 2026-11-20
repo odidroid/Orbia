@@ -268,7 +268,23 @@
                 </div>
             </div>
 
-            <div class="sleep-card">
+            <div class="sleep-card" id="accessibility-settings">
+                <h2>🔎 Acessibilidade</h2>
+                <div class="sleep-hours">
+                    <strong>Tamanho do texto</strong>
+                    <span class="settings-description">Escolha como o texto e a interface do ORBIA devem aparecer.</span>
+                    <label class="accessibility-option"><input type="radio" name="orbia-text-mode" value="default"><span><strong>Padrão do aplicativo</strong><small>Usa o tamanho original do ORBIA.</small></span></label>
+                    <label class="accessibility-option"><input type="radio" name="orbia-text-mode" value="system"><span><strong>Acompanhar o celular</strong><small>Usa a escala de fonte configurada no Android.</small></span></label>
+                    <label class="accessibility-option"><input type="radio" name="orbia-text-mode" value="custom"><span><strong>Personalizado</strong><small>Ajuste o tamanho como preferir.</small></span></label>
+                    <div id="orbia-custom-text-size" class="accessibility-custom" hidden>
+                        <div class="accessibility-range-heading"><label for="orbia-text-size">Tamanho da interface</label><output id="orbia-text-size-value" for="orbia-text-size">100%</output></div>
+                        <input id="orbia-text-size" type="range" min="100" max="160" step="5" value="100">
+                    </div>
+                    <span id="orbia-text-size-status" class="settings-info" role="status" aria-live="polite"></span>
+                </div>
+            </div>
+
+<div class="sleep-card">
                 <h2>👤 Meu perfil</h2>
                 <div class="sleep-hours">
                     <strong>Suas informações</strong>
