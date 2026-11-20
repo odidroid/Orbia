@@ -87,6 +87,20 @@ const pluginPath = path.join(
     "BackupExporterPlugin.java"
 );
 
+const fontScalePluginPath = path.join(path.dirname(mainActivityPath), "FontScalePlugin.java");
+const fontScalePluginCode = "package " + packageName + ";\n" +
+"import com.getcapacitor.Plugin;\nimport com.getcapacitor.PluginCall;\n" +
+"import com.getcapacitor.PluginMethod;\nimport com.getcapacitor.JSObject;\n" +
+"import com.getcapacitor.annotation.CapacitorPlugin;\n" +
+"@CapacitorPlugin(name = \"FontScale\")\n" +
+"public class FontScalePlugin extends Plugin {\n" +
+" @PluginMethod public void getSystemFontScale(PluginCall call) {\n" +
+"  float scale = getContext().getResources().getConfiguration().fontScale;\n" +
+"  JSObject result = new JSObject(); result.put(\"scale\", scale); call.resolve(result);\n" +
+" }\n}\n";
+fs.writeFileSync(fontScalePluginPath, fontScalePluginCode);
+
+
 // =====================================
 // PLUGIN NATIVO DE EXPORTAÇÃO DE BACKUP
 // =====================================
@@ -241,6 +255,7 @@ if (!mainActivity.includes("BackupExporterPlugin.class")) {
 
     const importLine =
         `import ${packageName}.BackupExporterPlugin;`;
+    const fontScaleImportLine = `import ${packageName}.FontScalePlugin;`;
 
     if (!mainActivity.includes(importLine)) {
         const packageLine = new RegExp(
@@ -249,7 +264,7 @@ if (!mainActivity.includes("BackupExporterPlugin.class")) {
 
         mainActivity = mainActivity.replace(
             packageLine,
-            `$1\n\n${importLine}`
+            `$1\n\n${importLine}\n${fontScaleImportLine}`
         );
     }
 
@@ -273,7 +288,7 @@ if (!mainActivity.includes("BackupExporterPlugin.class")) {
 
         mainActivity = mainActivity.replace(
             /(public\s+void\s+onCreate\s*\([^)]*\)\s*\{)/,
-            "$1\n        registerPlugin(BackupExporterPlugin.class);"
+            "$1\n        registerPlugin(BackupExporterPlugin.class);\n        registerPlugin(FontScalePlugin.class);"
         );
 
     } else {
