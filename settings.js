@@ -686,3 +686,79 @@ importBackupFile.addEventListener("change", async event => {
         importBackupFile.value = "";
     }
 });
+
+
+// =====================================
+// ACESSIBILIDADE — TAMANHO DO TEXTO
+// =====================================
+(() => {
+    const key = "orbia-accessibility";
+    const modes = document.querySelectorAll('input[name="orbia-text-mode"]');
+    const panel = document.getElementById("orbia-custom-text-size");
+    const slider = document.getElementById("orbia-text-size");
+    const output = document.getElementById("orbia-text-size-value");
+    const status = document.getElementById("orbia-text-size-status");
+    if (!modes.length || !panel || !slider || !output) return;
+
+    let prefs = { mode: "default", customScale: 100 };
+    try {
+        const saved = JSON.parse(localStorage.getItem(key) || "null");
+        if (saved && ["default", "system", "custom"].includes(saved.mode)) {
+            prefs = { mode: saved.mode, customScale: Math.min(160, Math.max(100, Number(saved.customScale) || 100)) };
+        }
+    } catch (error) { console.warn("Falha ao ler acessibilidade:", error); }
+
+    const apply = scale => {
+        const value = Math.min(1.8, Math.max(0.85, Number(scale) || 1));
+        document.documentElement.style.setProperty("--orbia-interface-scale", String(value));
+    };
+    const save = () => {
+        try { localStorage.setItem(key, JSON.stringify(prefs)); }
+        catch (error) { console.warn("Falha ao salvar acessibilidade:", error); }
+    };
+    async function applySystemScale() {
+        try {
+            if (window.OrbiaFontScale && window.OrbiaFontScale.isAvailable) {
+                const result = await window.OrbiaFontScale.getSystemFontScale();
+                if (result && Number.isFinite(Number(result.scale))) {
+                    apply(result.scale);
+                    status.textContent = "Sincronizado com a escala de fonte do Android.";
+                    return;
+                }
+            }
+        } catch (error) { console.warn("Falha ao consultar fonte do Android:", error); }
+        apply(1);
+        status.textContent = "Não foi possível ler a escala do Android; o tamanho padrão está ativo.";
+    }
+    function render() {
+        modes.forEach(input => { input.checked = input.value === prefs.mode; });
+        panel.hidden = prefs.mode !== "custom";
+        slider.value = String(prefs.customScale);
+        output.value = prefs.customScale + "%";
+        output.textContent = prefs.customScale + "%";
+        if (prefs.mode === "custom") {
+            apply(prefs.customScale / 100);
+            status.textContent = "Ajuste aplicado imediatamente.";
+        } else if (prefs.mode === "system") {
+            applySystemScale();
+        } else {
+            apply(1);
+            status.textContent = "";
+        }
+    }
+    modes.forEach(input => input.addEventListener("change", () => {
+        prefs.mode = input.value; save(); render();
+    }));
+    slider.addEventListener("input", () => {
+        prefs.mode = "custom";
+        prefs.customScale = Math.min(160, Math.max(100, Number(slider.value) || 100));
+        save(); render();
+    });
+    document.addEventListener("visibilitychange", () => {
+        if (!document.hidden && prefs.mode === "system") applySystemScale();
+    });
+    window.addEventListener("focus", () => {
+        if (prefs.mode === "system") applySystemScale();
+    });
+    render();
+})();
