@@ -760,5 +760,8 @@ importBackupFile.addEventListener("change", async event => {
     window.addEventListener("focus", () => {
         if (prefs.mode === "system") applySystemScale();
     });
+    document.addEventListener("DOMContentLoaded", () => {
+        if (prefs.mode === "system") applySystemScale();
+    }, { once: true });
     render();
 })();
