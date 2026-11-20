@@ -279,6 +279,7 @@ if (!mainActivity.includes("BackupExporterPlugin.class")) {
     @Override
     public void onCreate(android.os.Bundle savedInstanceState) {
         registerPlugin(BackupExporterPlugin.class);
+        registerPlugin(FontScalePlugin.class);
         super.onCreate(savedInstanceState);
     }
 }`
