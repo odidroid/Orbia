@@ -69,7 +69,7 @@ style.textContent += `
 `;
 
 /* O seletor precisa ficar visível durante o primeiro cadastro. */
-style.textContent += "\nbody.orbia-first-launch > .orbia-picker-backdrop{visibility:visible!important}";
+style.textContent += "\nbody.orbia-first-launch > *:not(#orbia-onboarding).orbia-picker-backdrop{visibility:visible!important}";
 document.head.appendChild(style);
 const months=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
 const weekdays=["D","S","T","Q","Q","S","S"];
