@@ -976,3 +976,28 @@ body.dark-theme .sleep-hours strong {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }
+
+
+/* Acessibilidade: escala visual da interface */
+html { --orbia-interface-scale: 1; }
+body { zoom: var(--orbia-interface-scale, 1); }
+.accessibility-option {
+    display:flex; align-items:flex-start; gap:12px; padding:13px 0;
+    border-bottom:1px solid var(--border); cursor:pointer;
+}
+.accessibility-option:last-of-type { border-bottom:0; }
+.accessibility-option input {
+    width:18px; height:18px; margin:2px 0 0; flex-shrink:0;
+    accent-color:var(--accent);
+}
+.accessibility-option span { display:flex; flex-direction:column; gap:4px; }
+.accessibility-option strong { color:var(--text); font-size:14px; }
+.accessibility-option small { color:var(--muted); font-size:12px; line-height:1.5; }
+.accessibility-custom { margin-top:15px; padding:14px; border-radius:12px; background:var(--background); }
+.accessibility-custom[hidden] { display:none; }
+.accessibility-range-heading {
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; margin-bottom:12px; color:var(--text); font-size:13px; font-weight:700;
+}
+.accessibility-range-heading output { color:var(--accent); font-variant-numeric:tabular-nums; }
+#orbia-text-size { width:100%; accent-color:var(--accent); }
